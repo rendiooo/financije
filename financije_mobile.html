@@ -351,6 +351,7 @@ input:focus,select:focus{border-color:var(--accent2);background:#fff}
         <div class="nc" onclick="goInv('xau_banka',this)"><span class="nc-dot"></span>XAU - Banka</div>
         <div class="nc" onclick="goInv('xau_revolut',this)"><span class="nc-dot"></span>XAU - Revolut</div>
         <div class="nc" onclick="goInv('sp500',this)"><span class="nc-dot"></span>S&P 500</div>
+        <div class="nc" onclick="goInv('xau_lovro',this)"><span class="nc-dot"></span>XAU - Lovro</div>
       </div>
     </div>
     <div style="margin-top:4px">
@@ -915,6 +916,7 @@ const INV_PORTFOLIOS = {
   xau_banka:   {label:'XAU - Banka',   unit:'g',  unitLabel:'gram', color:'#B8860B', priceLabel:'Cijena zlata (€/g)'},
   xau_revolut: {label:'XAU - Revolut', unit:'g',  unitLabel:'gram', color:'#C47A1E', priceLabel:'Cijena zlata (€/g)'},
   sp500:       {label:'S&P 500',       unit:'udj', unitLabel:'udjel', color:'#2A6BAD', priceLabel:'Cijena udjela (€/udj)'},
+  xau_lovro:   {label:'XAU - Lovro',    unit:'g',   unitLabel:'gram',  color:'#2D9E6B', priceLabel:'Cijena zlata (€/g)'},
 };
 
 function invLoad(key)  { try { return JSON.parse(localStorage.getItem('inv2_'+key)||'[]'); } catch(e){return[];} }
