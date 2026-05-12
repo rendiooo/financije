@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Financije">
+<title>Moje Financije</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F0EB;--surface:#fff;--border:#E4E0D8;--text:#1A1916;--muted:#6B6860;
+  --accent:#1A3A2A;--accent2:#2D6A4F;--green:#2D9E6B;--red:#D94F3D;
+  --sw:230px;--radius:12px;--rsm:8px;
+  --shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+
+  /* table light theme */
+  --tb-bg:#fff;--tb-surface:#F7F5F0;--tb-border:#E4E0D8;
+  --tb-muted:#6B6860;--tb-text:#1A1916;
+  --tb-head:#F2F0EB;--tb-cat:#1A3A2A;--tb-cat-bg:#E8F0EC;
+  --tb-hover:#F7F5F0;--tb-input:#fff;
+  --tb-green:#2D9E6B;--tb-red:#D94F3D;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+.layout{display:flex;min-height:100vh}
+
+/* ── MOBILE LAYOUT ── */
+html,body{height:100%;overflow:hidden}
+.layout{display:flex;flex-direction:column;height:100%;overflow:hidden}
+
+/* Top header bar */
+.sb{background:var(--accent);color:#fff;position:fixed;top:0;left:0;right:0;z-index:200;
+    height:56px;display:flex;align-items:center;padding:0 16px;
+    padding-top:env(safe-area-inset-top)}
+.sb-logo{display:flex;align-items:center;gap:10px;flex:1}
+.sb-logo h1{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;color:#fff}
+.sb-logo p{display:none}
+.nav{display:none}
+.sb-foot{display:none}
+
+/* Menu button */
+.menu-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.8);padding:8px;margin-right:4px;display:flex;align-items:center;justify-content:center}
+.menu-btn svg{width:20px;height:20px}
+.period-bar-header{display:flex;align-items:center;gap:6px;margin-left:auto}
+.period-bar-header select{padding:4px 8px;font-size:12px;font-weight:500;border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(255,255,255,.12);color:#fff;-webkit-appearance:none;min-width:70px;text-align:center}
+.period-bar-header select option{background:var(--accent);color:#fff}
+
+/* Slide-out drawer */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;background:var(--accent);z-index:301;
+        transform:translateX(-100%);transition:transform .28s ease;overflow-y:auto;
+        padding-top:env(safe-area-inset-top)}
+.drawer.open{transform:translateX(0)}
+.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,.1)}
+.drawer-hdr h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;color:#fff}
+.drawer-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
+.drawer-nav{padding:10px 8px}
+
+/* Drawer nav items */
+.ni{display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.6);font-size:14px;transition:all .15s;margin-bottom:1px;user-select:none}
+.ni.active{background:rgba(255,255,255,.16);color:#fff;font-weight:500}
+.ni svg{width:15px;height:15px;flex-shrink:0;opacity:.7}.ni.active svg{opacity:1}
+.np-h{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.6);font-size:14px;transition:all .15s;user-select:none;margin-bottom:1px}
+.np-h.open{color:#fff;background:rgba(255,255,255,.05)}
+.np-h .l{display:flex;align-items:center;gap:9px}
+.np-h svg.ic{width:15px;height:15px;opacity:.7}.np-h.open svg.ic{opacity:1}
+.chev{width:12px;height:12px;transition:transform .2s;opacity:.45;flex-shrink:0}
+.np-h.open .chev{transform:rotate(180deg);opacity:.75}
+.np-k{overflow:hidden;max-height:0;transition:max-height .3s ease}
+.np-k.open{max-height:600px}
+.nc{display:flex;align-items:center;gap:7px;padding:10px 12px 10px 30px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.5);font-size:13px;transition:all .15s;margin-bottom:1px;user-select:none}
+.nc.active{background:rgba(255,255,255,.13);color:#fff;font-weight:500}
+.nc-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.6}
+.nc.active .nc-dot{opacity:1}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+      padding:72px 16px 32px;
+      padding-top:calc(56px + env(safe-area-inset-top) + 16px);
+      padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.metrics{grid-template-columns:1fr 1fr}
+.card{padding:16px}
+.tbl-row-label{padding-left:20px}
+.tbl-head,.tbl-subtotal{padding:8px 12px}
+.tbl-row{grid-template-columns:1fr 120px}
+.tbl-head{grid-template-columns:1fr 120px}
+.tbl-subtotal{grid-template-columns:1fr 120px}
+.page{display:none}.page.active{display:block;animation:fi .18s ease}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.ph{margin-bottom:22px}
+.ph h2{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;letter-spacing:-.5px}
+.ph p{color:var(--muted);font-size:14px;margin-top:3px}
+.bc{font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:22px}
+.mc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.mc-l{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.4px;text-transform:uppercase;margin-bottom:7px}
+.mc-v{font-size:21px;font-weight:600;letter-spacing:-.5px}
+.mc-s{font-size:11px;color:var(--muted);margin-top:4px}
+.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--text)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:18px}
+.ct{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.g2{display:grid;grid-template-columns:1fr;gap:14px}
+.cw{position:relative;width:100%}
+.ig-p{font-size:12px;color:var(--green)}.ig-n{font-size:12px;color:var(--red)}
+.badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--muted);vertical-align:middle}
+.empty{text-align:center;padding:28px;color:var(--muted);font-size:14px}
+.il{display:flex;flex-direction:column;gap:4px}
+.li{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:var(--rsm);background:var(--bg);border:1px solid transparent;transition:border-color .12s}
+.li:hover{border-color:var(--border)}
+.li-l{display:flex;align-items:center;gap:10px;min-width:0}
+.cd{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.ln{font-size:14px;font-weight:500}
+.ls{font-size:12px;color:var(--muted);margin-top:1px}
+.li-r{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.la{font-size:14px;font-weight:600;white-space:nowrap}
+.db{background:none;border:none;cursor:pointer;color:var(--border);font-size:17px;line-height:1;padding:2px 5px;border-radius:4px;transition:color .12s}
+.db:hover{color:var(--red)}
+.fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:11px;margin-bottom:14px}
+.fl{display:block;font-size:11px;font-weight:500;color:var(--muted);margin-bottom:4px;letter-spacing:.3px;text-transform:uppercase}
+input[type=text],input[type=number],input[type=date],select{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:var(--rsm);font-family:inherit;font-size:14px;background:var(--bg);color:var(--text);outline:none;transition:border-color .15s,background .15s;-webkit-appearance:none}
+input:focus,select:focus{border-color:var(--accent2);background:#fff}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rsm);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
+.st-wrap{width:100%;overflow-x:auto}
+.st{width:100%;border-collapse:collapse;font-size:13px}
+.st th{text-align:left;font-weight:500;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0 0 8px;border-bottom:1px solid var(--border)}
+.st td{padding:9px 0;border-bottom:1px solid var(--border);vertical-align:middle}
+.st tr:last-child td{border-bottom:none}
+
+/* ════════════════════════════════
+   BUDGET TABLE — dark theme
+   ════════════════════════════════ */
+.tbl-wrap{background:var(--tb-bg);border-radius:var(--radius);overflow:hidden;border:1px solid var(--tb-border);box-shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04)}
+
+/* column header bar */
+.tbl-head{display:grid;grid-template-columns:1fr 160px;background:var(--tb-head);padding:10px 16px;border-bottom:1px solid var(--tb-border)}
+.tbl-head span{font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--tb-muted)}
+.tbl-head span:last-child{text-align:right}
+
+/* category header row */
+.tbl-cat{display:grid;grid-template-columns:1fr 160px;padding:11px 16px;background:var(--tb-surface);border-bottom:1px solid var(--tb-border);cursor:pointer;user-select:none}
+.tbl-cat:hover{background:var(--tb-hover)}
+.tbl-cat-left{display:flex;align-items:center;gap:10px}
+.tbl-cat-icon{font-size:15px}
+.tbl-cat-label{font-size:13px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--tb-cat)}
+.tbl-cat-total{font-size:13px;font-weight:700;color:var(--tb-green);text-align:right;align-self:center}
+.tbl-cat-chev{width:12px;height:12px;transition:transform .2s;opacity:.4;margin-left:4px}
+.tbl-cat.collapsed .tbl-cat-chev{transform:rotate(-90deg)}
+
+/* group header (Matea / Matija) */
+.tbl-group{display:grid;grid-template-columns:1fr 160px;padding:8px 16px 8px 20px;background:var(--tb-bg);border-bottom:1px solid var(--tb-border)}
+.tbl-group-left{display:flex;align-items:center;gap:8px}
+.tbl-avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.tbl-group-name{font-size:12px;font-weight:600;color:var(--tb-muted);text-transform:uppercase;letter-spacing:.5px}
+.tbl-group-total{font-size:13px;font-weight:600;color:var(--tb-green);text-align:right;align-self:center}
+
+/* subcat row */
+.tbl-row{display:grid;grid-template-columns:1fr 160px;border-bottom:1px solid var(--tb-border);transition:background .1s}
+.tbl-row:hover{background:var(--tb-hover)}
+.tbl-row:last-child{border-bottom:none}
+.tbl-row-label{padding:10px 16px 10px 36px;font-size:14px;color:var(--tb-text);display:flex;align-items:center;gap:8px}
+.tbl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+/* editable cell */
+.tbl-cell{padding:0;position:relative}
+.tbl-val{
+  display:block;width:100%;height:100%;
+  padding:10px 16px;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;
+  color:var(--tb-green);text-align:right;
+  background:transparent;border:none;outline:none;
+  cursor:pointer;
+  -webkit-appearance:none;
+}
+.tbl-val.empty-val{color:var(--tb-muted);font-weight:400}
+.tbl-val.default-val{color:var(--amber);font-style:italic}
+.tbl-val:focus{
+  background:var(--tb-input);color:var(--tb-text);
+  outline:2px solid rgba(45,106,79,.35);outline-offset:-2px;
+  cursor:text;
+}
+.tbl-val::-webkit-inner-spin-button,
+.tbl-val::-webkit-outer-spin-button{-webkit-appearance:none}
+
+/* subtotal row */
+.tbl-subtotal{display:grid;grid-template-columns:1fr 160px;padding:9px 16px;background:var(--tb-head);border-top:1px solid var(--tb-border)}
+.tbl-subtotal-label{font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tb-muted);align-self:center}
+.tbl-subtotal-val{font-size:14px;font-weight:700;color:var(--tb-green);text-align:right}
+
+/* section collapse */
+.tbl-section{overflow:hidden}
+.tbl-section.collapsed{display:none}
+
+/* settings */
+.set-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;box-shadow:var(--shadow);margin-bottom:16px}
+.set-cat-hdr{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.set-cat-label{font-size:14px;font-weight:600}
+.set-cat-icon{font-size:16px}
+.set-row{display:flex;align-items:center;gap:10px;padding:8px 0 8px 4px;border-bottom:0.5px solid var(--border)}
+.set-row:last-child{border-bottom:none}
+.set-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.set-row-label{font-size:14px;color:var(--text);flex:1;min-width:0}
+.set-radios{display:flex;gap:4px;flex-shrink:0}
+.set-defaults{display:flex;gap:4px;flex-shrink:0;margin-right:8px}
+.set-def-inp{width:72px;padding:4px 7px;border:1px solid var(--border);border-radius:var(--rsm);font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);text-align:right;outline:none;-webkit-appearance:none}
+.set-def-inp:focus{border-color:var(--accent2);background:#fff}
+.set-def-inp::placeholder{color:var(--muted);opacity:.5}
+.set-radio-btn{padding:4px 10px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--muted);transition:all .12s;white-space:nowrap}
+.set-radio-btn:hover{border-color:var(--accent);color:var(--accent)}
+.set-radio-btn.active-prihod{background:#E8F5EE;border-color:#2D9E6B;color:#1A6B45}
+.set-radio-btn.active-rashod{background:#FEEFEE;border-color:#D94F3D;color:#9B2B1E}
+.set-radio-btn.active-zajednicki{background:#EEF2FB;border-color:#5B7ED6;color:#2A4BAD}
+.set-col-hdr{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:6px 4px 4px;border-bottom:1px solid var(--border);margin-bottom:2px}
+.set-col-labels{display:flex;gap:4px}
+.set-col-lbl{width:82px;text-align:center;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+
+/* inv portfolio tabs */
+.inv-tab{padding:8px 16px;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--muted);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.inv-tab:hover{border-color:var(--accent);color:var(--accent)}
+.inv-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.inv-portfolio-metric{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:4px}
+
+/* flow cards */
+.flow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:22px}
+.flow-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.flow-card.accent{background:var(--accent);border-color:var(--accent)}
+.flow-card.accent .fc-label{color:rgba(255,255,255,.6)}
+.flow-card.accent .fc-val{color:#fff}
+.flow-card.green-card{background:#F0FAF5;border-color:#A8DBBF}
+.flow-card.green-card .fc-label{color:#1A6B45}
+.flow-card.green-card .fc-val{color:#1A6B45}
+.flow-card.red-card{background:#FEF2F0;border-color:#F5BDB7}
+.flow-card.red-card .fc-label{color:#9B2B1E}
+.flow-card.red-card .fc-val{color:#9B2B1E}
+.fc-label{font-size:11px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.fc-val{font-size:24px;font-weight:600;letter-spacing:-.5px}
+.fc-sub{font-size:11px;color:var(--muted);margin-top:5px}
+.fc-rows{margin-top:10px;border-top:1px solid rgba(0,0,0,.06);padding-top:8px}
+.fc-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:12px}
+.fc-row span:first-child{color:var(--muted)}
+.fc-row span:last-child{font-weight:600}
+.flow-arrow{display:flex;justify-content:center;align-items:center;font-size:20px;color:var(--muted);margin:2px 0}
+
+
+/* sync status */
+.sync-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#ccc}
+.sync-dot.ok{background:var(--green)}
+.sync-dot.err{background:var(--red)}
+.sync-dot.syncing{background:var(--amber);animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sync-btn{margin-left:auto;padding:4px 10px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.sync-btn:hover{background:var(--bg);color:var(--text)}
+
+/* period picker */
+.period-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px}
+.period-bar select{width:auto;padding:6px 10px;font-size:13px;font-weight:500;border:1px solid var(--border);border-radius:var(--rsm);background:var(--surface);color:var(--text);cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6860' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
+.period-bar select:focus{border-color:var(--accent2);outline:none}
+.period-label{font-size:13px;color:var(--muted);font-weight:500}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- ════════════════ HEADER + DRAWER ════════════════ -->
+<header class="sb">
+  <button class="menu-btn" onclick="openDrawer()" aria-label="Izbornik">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+  <div class="sb-logo"><h1>Financije</h1></div>
+  <div class="period-bar-header" id="period-bar-header"></div>
+</header>
+
+<!-- Drawer overlay -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+<!-- Slide-out drawer -->
+<div class="drawer" id="drawer">
+  <div class="drawer-hdr">
+    <h2>Financije</h2>
+    <button class="drawer-close" onclick="closeDrawer()">×</button>
+  </div>
+  <nav class="drawer-nav" id="drawer-nav">
+
+    <div class="ni active" id="nav-dashboard" onclick="goPage('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+      </svg>Dashboard
+    </div>
+
+    <div style="margin-top:6px">
+      <div class="np-h" id="np-planned" onclick="toggleSection('planned')">
+        <span class="l">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>Planirani troškovi
+        </span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="np-k" id="kids-planned">
+        <div class="nc" onclick="gocat('planned','prihodi',this)"><span class="nc-dot"></span>Prihodi</div>
+        <div class="nc" onclick="gocat('planned','rezije',this)"><span class="nc-dot"></span>Režije i krediti</div>
+        <div class="nc" onclick="gocat('planned','kucanstvo',this)"><span class="nc-dot"></span>Kućanstvo</div>
+        <div class="nc" onclick="gocat('planned','automobili',this)"><span class="nc-dot"></span>Automobili</div>
+        <div class="nc" onclick="gocat('planned','pretplate',this)"><span class="nc-dot"></span>Pretplate</div>
+        <div class="nc" onclick="gocat('planned','izlasci',this)"><span class="nc-dot"></span>Zabava</div>
+        <div class="nc" onclick="gocat('planned','stednja',this)"><span class="nc-dot"></span>Štednja</div>
+        <div class="nc" onclick="gocat('planned','zajednicki',this)"><span class="nc-dot"></span>Uplata na zajednički račun</div>
+      </div>
+    </div>
+
+    <div style="margin-top:4px">
+      <div class="np-h" id="np-actual" onclick="toggleSection('actual')">
+        <span class="l">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>Stvarni troškovi
+        </span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="np-k" id="kids-actual">
+        <div class="nc" onclick="gocat('actual','prihodi',this)"><span class="nc-dot"></span>Prihodi</div>
+        <div class="nc" onclick="gocat('actual','rezije',this)"><span class="nc-dot"></span>Režije i krediti</div>
+        <div class="nc" onclick="gocat('actual','kucanstvo',this)"><span class="nc-dot"></span>Kućanstvo</div>
+        <div class="nc" onclick="gocat('actual','automobili',this)"><span class="nc-dot"></span>Automobili</div>
+        <div class="nc" onclick="gocat('actual','pretplate',this)"><span class="nc-dot"></span>Pretplate</div>
+        <div class="nc" onclick="gocat('actual','izlasci',this)"><span class="nc-dot"></span>Zabava</div>
+        <div class="nc" onclick="gocat('actual','stednja',this)"><span class="nc-dot"></span>Štednja</div>
+        <div class="nc" onclick="gocat('actual','zajednicki',this)"><span class="nc-dot"></span>Uplata na zajednički račun</div>
+      </div>
+    </div>
+
+    <div style="margin-top:4px">
+      <div class="np-h" id="np-investments" onclick="toggleSection('investments')">
+        <span class="l">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
+          </svg>Investicije
+        </span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="np-k" id="kids-investments">
+        <div class="nc" onclick="goInv('xau_banka',this)"><span class="nc-dot"></span>XAU - Banka</div>
+        <div class="nc" onclick="goInv('xau_revolut',this)"><span class="nc-dot"></span>XAU - Revolut</div>
+        <div class="nc" onclick="goInv('sp500',this)"><span class="nc-dot"></span>S&P 500</div>
+      </div>
+    </div>
+    <div style="margin-top:4px">
+      <div class="ni" id="nav-settings" onclick="goPage('settings',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+        </svg>Postavke
+      </div>
+    </div>
+  </nav></div><!-- /drawer -->
+
+<!-- ════════════════ MAIN ════════════════ -->
+<main class="main">
+  <!-- SYNC BAR -->
+  <div class="sync-bar" id="sync-bar">
+    <div class="sync-dot" id="sync-dot"></div>
+    <span id="sync-status">Povezivanje...</span>
+    <button class="sync-btn" onclick="syncNow()">↻ Sinkroniziraj</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:22px">
+      <div class="ph" style="margin-bottom:0"><h2>Dashboard</h2><p id="dash-month">—</p></div>
+
+    </div>
+
+    <!-- TIJEK NOVCA -->
+    <div id="dash-flow"></div>
+
+    <!-- CHARTS -->
+    <div class="card">
+      <div class="ct">Stanje zajedničkog računa <span style="font-size:11px;font-weight:400;color:var(--muted)" id="chart-zaj-year"></span></div>
+      <div class="cw" style="height:400px"><canvas id="chartZaj" role="img" aria-label="Stanje zajedničkog računa po mjesecu"></canvas></div>
+    </div>
+    <div class="g2">
+      <div class="card">
+        <div class="ct">Planirano vs stvarno (rashodi)</div>
+        <div class="cw" style="height:200px"><canvas id="chartPvA" role="img" aria-label="Planirano vs stvarno"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="ct">Godišnji plan rashoda <span style="font-size:11px;font-weight:400;color:var(--muted)" id="chart-plan-year"></span></div>
+        <div id="chart-plan-body"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Pregled kategorija</div>
+      <div class="st-wrap"><table class="st" id="dash-table"></table></div>
+    </div>
+  </div>
+
+  <!-- CATEGORY PAGE -->
+  <div id="page-cat" class="page">
+    <div class="bc" id="cat-bc"></div>
+    <div class="ph"><h2 id="cat-title"></h2><p id="cat-sub"></p></div>
+    <div id="cat-body"></div>
+  </div>
+
+  <!-- INVESTICIJE -->
+  <div id="page-investments" class="page">
+    <div class="ph"><h2>Investicije</h2><p>Praćenje portfelja i prinosa</p></div>
+
+    <!-- Current price update -->
+    <div class="card" id="inv-price-card">
+      <div class="ct" style="margin-bottom:12px">Trenutna tržišna cijena</div>
+      <div id="inv-price-body"></div>
+    </div>
+
+    <!-- Add purchase form -->
+    <div class="card">
+      <div class="ct" id="inv-form-title">Nova kupnja</div>
+      <div id="inv-form-body"></div>
+    </div>
+
+    <!-- Portfolio summary -->
+    <div class="card">
+      <div class="ct">Pregled portfelja</div>
+      <div id="inv-summary"></div>
+    </div>
+
+    <!-- Purchase history -->
+    <div class="card">
+      <div class="ct">Povijest kupnji</div>
+      <div class="il" id="inv-history"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="page-settings" class="page">
+    <div class="ph"><h2>Postavke</h2><p>Konfiguracija bucketa i početnog stanja</p></div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:14px">Početno stanje zajedničkog računa</div>
+      <div style="display:flex;align-items:center;gap:12px;max-width:340px">
+        <input type="number" id="pocetno-stanje" placeholder="0.00" min="0" step="0.01"
+          style="flex:1" oninput="savePocetnoStanje(this.value)">
+        <span style="font-size:14px;color:var(--muted);white-space:nowrap">€</span>
+      </div>
+      <p style="font-size:12px;color:var(--muted);margin-top:8px">Ovo se koristi za izračun planiranog i stvarnog stanja zajedničkog računa na dashboardu.</p>
+    </div>
+    <div id="settings-body"></div>
+  </div>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+const CATS = ['prihodi','rezije','kucanstvo','automobili','pretplate','izlasci','stednja','zajednicki'];
+
+const META = {
+  prihodi:    {label:'Prihodi',           icon:'💰', color:'#2D9E6B', income:true },
+  rezije:     {label:'Režije i krediti',  icon:'💡', color:'#2A6BAD', income:false},
+  kucanstvo:  {label:'Kućanstvo',         icon:'🏠', color:'#8B5CF6', income:false},
+  automobili: {label:'Automobili',        icon:'🚗', color:'#C47A1E', income:false},
+  pretplate:  {label:'Pretplate',         icon:'📱', color:'#1A9490', income:false},
+  izlasci:    {label:'Zabava',            icon:'🎉', color:'#D94F3D', income:false},
+  stednja:    {label:'Štednja',           icon:'🏦', color:'#5B7ED6', income:false},
+  zajednicki: {label:'Uplata na zajednički račun', icon:'🏛', color:'#2D9E6B', income:false},
+};
+
+const SUBCATS = {
+  prihodi: [
+    {key:'placa_matea',   label:'Plaća Matea',         color:'#2D9E6B'},
+    {key:'bonus_matea',   label:'Bonus Matea',          color:'#1A9490'},
+    {key:'povrat_matea',  label:'Povrat poreza Matea',  color:'#5B7ED6'},
+    {key:'najam_matea',   label:'Najam Matea',          color:'#8B5CF6'},
+    {key:'placa_matija',  label:'Plaća Matija',         color:'#C47A1E'},
+    {key:'bonus_matija',  label:'Bonus Matija',         color:'#D94F3D'},
+    {key:'povrat_matija', label:'Povrat poreza Matija', color:'#2A6BAD'},
+    {key:'najam_matija',  label:'Najam Matija',         color:'#1A9490'},
+  ],
+  rezije: [
+    {key:'kredit_matea', label:'Kredit Matea',      color:'#2A6BAD'},
+    {key:'kredit_matija',label:'Kredit Matija',     color:'#5B7ED6'},
+    {key:'struja',       label:'Struja',            color:'#C47A1E'},
+    {key:'voda',         label:'Voda',              color:'#1A9490'},
+    {key:'plin',         label:'Plin',              color:'#D94F3D'},
+    {key:'smece',        label:'Smeće',             color:'#71717A'},
+    {key:'hrt',          label:'HRT',               color:'#8B5CF6'},
+    {key:'komunalna',    label:'Komunalna naknada', color:'#2D9E6B'},
+    {key:'pricuva',      label:'Pričuva',           color:'#1A9490'},
+    {key:'mobitel',      label:'Mobitel',           color:'#C47A1E'},
+    {key:'internet',     label:'Internet',          color:'#2A6BAD'},
+  ],
+  kucanstvo: [
+    {key:'popravci', label:'Popravci i namještaj', color:'#8B5CF6'},
+    {key:'ducani',   label:'Dućani',               color:'#2D9E6B'},
+    {key:'ljekarna', label:'Ljekarna',             color:'#D94F3D'},
+    {key:'pranje',   label:'Pranje i peglanje',    color:'#1A9490'},
+    {key:'lovro',    label:'Lovro',                color:'#C47A1E'},
+  ],
+  automobili: [
+    {key:'leasing',      label:'Leasing',      color:'#C47A1E'},
+    {key:'osiguranje',   label:'Osiguranje',   color:'#2A6BAD'},
+    {key:'registracije', label:'Registracije', color:'#5B7ED6'},
+    {key:'servis',       label:'Servis',       color:'#D94F3D'},
+    {key:'gorivo',       label:'Gorivo',       color:'#1A9490'},
+  ],
+  pretplate: [
+    {key:'netflix',    label:'Netflix',       color:'#D94F3D'},
+    {key:'remarkable', label:'Remarkable',    color:'#2A6BAD'},
+    {key:'ytmusic',    label:'YouTube Music', color:'#8B5CF6'},
+    {key:'ai',         label:'AI',            color:'#1A9490'},
+    {key:'sketchup',   label:'Sketchup',      color:'#C47A1E'},
+  ],
+  izlasci: [
+    {key:'izlasci',        label:'Izlasci',       color:'#D94F3D'},
+    {key:'pokloni',        label:'Pokloni',       color:'#C47A1E'},
+    {key:'proslave',       label:'Proslave',      color:'#8B5CF6'},
+    {key:'deparac_matija', label:'Đeparac Matija', color:'#5B7ED6'},
+    {key:'deparac_matea',  label:'Đeparac Matea',  color:'#2D9E6B'},
+  ],
+  stednja: [
+    {key:'sp500',      label:'S&P 500',       color:'#5B7ED6'},
+    {key:'xau_revolut', label:'XAU - Revolut', color:'#C47A1E'},
+    {key:'xau_banka',   label:'XAU - Banka',   color:'#B8860B'},
+  ],
+  zajednicki: [
+    {key:'zajednicki_uplata', label:'Uplata na zajednički račun', color:'#2D9E6B'},
+  ],
+};
+
+const GROUPS = {
+  Matea:  {avatar:'Ma', bg:'#E8F5EE', fg:'#1A6B45'},
+  Matija: {avatar:'Mj', bg:'#FFF3E0', fg:'#9A5B0A'},
+};
+
+
+// ══════════════════════════════════════════════
+// BUCKET CONFIG — prihod / rashod / zajednicki
+// ══════════════════════════════════════════════
+const BUCKET_KEY = 'bucket_config_v1';
+const ALL_CATS   = ['prihodi','rezije','kucanstvo','automobili','pretplate','izlasci','stednja','zajednicki'];
+
+// defaults: prihodi → 'prihod', everything else → 'rashod'
+function defaultBucketConfig() {
+  const cfg = {};
+  ALL_CATS.forEach(cat => {
+    SUBCATS[cat].forEach(sub => {
+      cfg[cat+'__'+sub.key] = cat === 'prihodi' ? 'prihod' : 'rashod';
+    });
+  });
+  return cfg;
+}
+
+function loadBucketConfig() {
+  try {
+    const s = localStorage.getItem(BUCKET_KEY);
+    if (s) return {...defaultBucketConfig(), ...JSON.parse(s)};
+  } catch(e) {}
+  return defaultBucketConfig();
+}
+
+function saveBucketConfig() {
+  localStorage.setItem(BUCKET_KEY, JSON.stringify(bucketCfg));
+}
+
+let bucketCfg = loadBucketConfig();
+
+// početno stanje zajedničkog računa
+const POCETNO_KEY = 'pocetno_stanje';
+function loadPocetnoStanje() {
+  return parseFloat(localStorage.getItem(POCETNO_KEY) || '0') || 0;
+}
+function savePocetnoStanje(val) {
+  localStorage.setItem(POCETNO_KEY, parseFloat(val) || 0);
+}
+
+function getBucket(cat, subkey) {
+  return bucketCfg[cat+'__'+subkey] || 'rashod';
+}
+
+function bucketSum(section, bucket) {
+  return ALL_CATS.reduce((total, cat) => {
+    return total + SUBCATS[cat].reduce((s, sub) => {
+      return s + (getBucket(cat, sub.key) === bucket ? getDB(section, cat, sub.key) : 0);
+    }, 0);
+  }, 0);
+}
+
+// keep rashodSum for chart compatibility
+function rashodSum(section) { return bucketSum(section, 'rashod'); }
+
+// ── SETTINGS PAGE ──
+function renderSettings() {
+  bucketCfg = loadBucketConfig();
+  const pocEl = document.getElementById('pocetno-stanje');
+  if (pocEl) pocEl.value = loadPocetnoStanje() || '';
+  const body = document.getElementById('settings-body');
+
+  const BUCKETS = [
+    {key:'prihod',      label:'Prihod',      cls:'active-prihod'},
+    {key:'rashod',      label:'Rashod',      cls:'active-rashod'},
+    {key:'zajednicki',  label:'Zajednički',  cls:'active-zajednicki'},
+  ];
+  const SECTIONS = [
+    {key:'planned', label:'Plan.'},
+    {key:'actual',  label:'Stvarno'},
+  ];
+
+  body.innerHTML = ALL_CATS.map(cat => {
+    const m = META[cat];
+    const subs = SUBCATS[cat];
+
+    const rows = subs.map(sub => {
+      const current = getBucket(cat, sub.key);
+      const btns = BUCKETS.map(b => {
+        const active = current === b.key ? b.cls : '';
+        return `<button class="set-radio-btn ${active}" onclick="setBucket('${cat}','${sub.key}','${b.key}',this)">${b.label}</button>`;
+      }).join('');
+      const defInputs = SECTIONS.map(sec => {
+        const defVal = getDefault(sec.key, cat, sub.key);
+        return `<input type="number" class="set-def-inp" placeholder="—"
+          value="${defVal > 0 ? defVal : ''}"
+          title="Zadana vrijednost za ${sec.label}"
+          onchange="setDefault('${sec.key}','${cat}','${sub.key}',this.value)"
+          min="0" step="0.01">`;
+      }).join('');
+      return `<div class="set-row">
+        <div class="set-dot" style="background:${sub.color}"></div>
+        <span class="set-row-label">${sub.label}</span>
+        <div class="set-defaults">${defInputs}</div>
+        <div class="set-radios" id="radios_${cat}__${sub.key}">${btns}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="set-section">
+      <div class="set-cat-hdr">
+        <span class="set-cat-icon">${m.icon}</span>
+        <span class="set-cat-label">${m.label}</span>
+      </div>
+      <div class="set-col-hdr">
+        <span style="font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px">Stavka</span>
+        <div class="set-col-labels">
+          ${BUCKETS.map(b=>`<span class="set-col-lbl">${b.label}</span>`).join('')}
+        </div>
+      </div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+
+function setBucket(cat, key, bucket, btn) {
+  bucketCfg[cat+'__'+key] = bucket;
+  saveBucketConfig();
+  // update button styles
+  const BUCKET_CLS = {prihod:'active-prihod', rashod:'active-rashod', zajednicki:'active-zajednicki'};
+  const wrap = document.getElementById('radios_'+cat+'__'+key);
+  if (wrap) {
+    wrap.querySelectorAll('.set-radio-btn').forEach(b => {
+      b.className = 'set-radio-btn';
+    });
+    btn.className = 'set-radio-btn ' + (BUCKET_CLS[bucket] || '');
+  }
+}
+
+const INVC = {Dionice:'#2A6BAD',ETF:'#2D9E6B',Obveznice:'#5B7ED6',Nekretnine:'#C47A1E',Kriptovalute:'#D94F3D','Zlato/Roba':'#B8860B',Štednja:'#0EA5A0',Ostalo:'#888'};
+
+// ══════════════════════════════════════════════
+// PERIOD — selected year + month
+// ══════════════════════════════════════════════
+const NOW = new Date();
+let selYear  = NOW.getFullYear();
+let selMonth = NOW.getMonth() + 1; // 1-12
+
+let testMode = false;
+
+function periodKey() {
+  if (testMode) return 'TEST';
+  return `${selYear}-${String(selMonth).padStart(2,'0')}`;
+}
+
+function handleMonthChange(val, onChangeFn) {
+  if (val === 'TEST') {
+    testMode = true;
+  } else {
+    testMode = false;
+    selMonth = +val;
+  }
+  eval(onChangeFn);
+}
+
+function buildPeriodPicker(barId, onChangeFn) {
+  const bar = document.getElementById(barId);
+  if (!bar) return;
+
+  const startYear = 2024;
+  const endYear   = NOW.getFullYear() + 1;
+  const years = Array.from({length: endYear - startYear + 1}, (_,i) => startYear + i);
+
+  const MONTHS_HR = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
+                     'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
+
+  bar.innerHTML = `
+    <span class="period-label">Period:</span>
+    <select id="${barId}-year" onchange="selYear=+this.value;${onChangeFn}">
+      ${years.map(y=>`<option value="${y}"${y===selYear?' selected':''}>${y}</option>`).join('')}
+    </select>
+    <select id="${barId}-month" onchange="handleMonthChange(this.value,'${onChangeFn}')">
+      ${MONTHS_HR.map((m,i)=>`<option value="${i+1}"${i+1===selMonth&&!testMode?' selected':''}>${m}</option>`).join('')}
+      <option value="TEST" ${testMode?' selected':''} style="font-weight:700;color:#C47A1E">⚗ TEST</option>
+    </select>`;
+}
+
+// ══════════════════════════════════════════════
+// DATA — stored per period key YYYY-MM
+// ══════════════════════════════════════════════
+function storeKey(pfx, cat, subkey) {
+  return `${pfx}_${cat}_${subkey}_${periodKey()}`;
+}
+
+function getVal(pfx, cat, subkey) {
+  return parseFloat(localStorage.getItem(storeKey(pfx, cat, subkey)) || '0') || 0;
+}
+
+function setVal(pfx, cat, subkey, val) {
+  localStorage.setItem(storeKey(pfx, cat, subkey), val);
+}
+
+// DB is now a live accessor (reads from localStorage per period)
+const DB = {
+  investments: JSON.parse(localStorage.getItem('finv') || '[]'),
+};
+
+function getDB(section, cat, subkey) {
+  const pfx = section==='planned'?'fp':'fa';
+  const stored = localStorage.getItem(`${pfx}_${cat}_${subkey}_${periodKey()}`);
+  if (stored !== null && stored !== '' && parseFloat(stored) !== 0) {
+    return parseFloat(stored) || 0;
+  }
+  return getDefault(section, cat, subkey);
+}
+function getDefault(section, cat, subkey) {
+  const pfx = section==='planned'?'fp':'fa';
+  return parseFloat(localStorage.getItem(`${pfx}_${cat}_${subkey}_default`) || '0') || 0;
+}
+function setDefault(section, cat, subkey, val) {
+  const pfx = section==='planned'?'fp':'fa';
+  localStorage.setItem(`${pfx}_${cat}_${subkey}_default`, parseFloat(val) || 0);
+}
+function hasMonthlyValue(section, cat, subkey) {
+  const pfx = section==='planned'?'fp':'fa';
+  const stored = localStorage.getItem(`${pfx}_${cat}_${subkey}_${periodKey()}`);
+  return stored !== null && stored !== '' && stored !== '0';
+}
+function setDB(section, cat, subkey, val) {
+  setVal(section==='planned'?'fp':'fa', cat, subkey, val);
+}
+
+function save() {
+  localStorage.setItem('finv', JSON.stringify(DB.investments));
+}
+
+// ══════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════
+const fmt = n => {
+  if (!n || n === 0) return '—';
+  return n.toLocaleString('hr-HR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+};
+const fmtFull = n => n.toLocaleString('hr-HR', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €';
+const today = () => new Date().toISOString().split('T')[0];
+
+function catSum(section, cat) {
+  return SUBCATS[cat].reduce((s, sub) => s + getDB(section, cat, sub.key), 0);
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+function clearActive(){document.querySelectorAll('.ni,.nc').forEach(e=>e.classList.remove('active'));}
+
+function goPage(id, el){
+  clearActive(); el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(id==='dashboard')   renderDash();
+  if(id==='investments'){renderInvPortfolio();}
+  if(id==='settings')    renderSettings();
+  closeDrawer();
+}
+
+function gocat(section, cat, el){
+  clearActive(); el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-cat').classList.add('active');
+  renderCatPage(section, cat);
+  closeDrawer();
+}
+
+function toggleSection(id){
+  const h=document.getElementById('np-'+id), k=document.getElementById('kids-'+id);
+  if(!h||!k) return;
+  const was=k.classList.contains('open');
+  ['planned','actual','investments'].forEach(x=>{
+    const hh=document.getElementById('np-'+x), kk=document.getElementById('kids-'+x);
+    if(hh) hh.classList.remove('open');
+    if(kk) kk.classList.remove('open');
+  });
+  if(!was){h.classList.add('open');k.classList.add('open');}
+}
+
+function goInv(key, el){
+  clearActive(); el.classList.add('active');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-investments').classList.add('active');
+  currentPortfolio = key;
+  document.querySelectorAll('.inv-tab').forEach(t=>t.classList.remove('active'));
+  const tabEl = document.getElementById('itab-'+key);
+  if(tabEl) tabEl.classList.add('active');
+  renderInvPortfolio();
+  closeDrawer();
+}
+
+// ══════════════════════════════════════════════
+// CATEGORY TABLE
+// ══════════════════════════════════════════════
+let _sec, _cat;
+
+function renderCatPage(section, cat) {
+  _sec = section; _cat = cat;
+  buildHeaderPeriodPicker();
+  const m    = META[cat];
+  const subs = SUBCATS[cat];
+  const isInc = m.income;
+  const total = catSum(section, cat);
+  const colLabel = section === 'planned' ? 'Planirano (€)' : 'Stvarno (€)';
+
+  document.getElementById('cat-bc').textContent = (section==='planned'?'Planirani troškovi':'Stvarni troškovi') + ' ›';
+  document.getElementById('cat-title').textContent = m.label;
+  document.getElementById('cat-sub').textContent = section==='planned' ? 'Unesite planirane iznose po kategoriji' : 'Unesite stvarne iznose po kategoriji';
+
+  let rowsHTML = '';
+  subs.forEach(sub => { rowsHTML += subcatRowTbl(section, cat, sub, isInc); });
+
+  document.getElementById('cat-body').innerHTML = `
+    <div class="tbl-wrap">
+      <div class="tbl-head">
+        <span>Stavka</span>
+        <span>${colLabel}</span>
+      </div>
+      <div id="tbl-rows">${rowsHTML}</div>
+      <div class="tbl-subtotal">
+        <div class="tbl-subtotal-label">Subtotal</div>
+        <div class="tbl-subtotal-val" id="tbl-subtotal">${fmtFull(total)}</div>
+      </div>
+    </div>`;
+}
+
+function subcatRowTbl(section, cat, sub, isInc) {
+  const val = getDB(section, cat, sub.key);
+  const isEmpty = val === 0;
+  const isDefault = val > 0 && !hasMonthlyValue(section, cat, sub.key) && getDefault(section, cat, sub.key) > 0;
+  return `<div class="tbl-row" id="tblrow-${sub.key}">
+    <div class="tbl-row-label">
+      <div class="tbl-dot" style="background:${sub.color}"></div>
+      ${sub.label}
+      ${isDefault?'<span style="font-size:10px;color:var(--muted);margin-left:4px;font-style:italic">zadano</span>':''}
+    </div>
+    <div class="tbl-cell">
+      <input type="number" class="tbl-val${isEmpty?' empty-val':''}${isDefault?' default-val':''}"
+        id="tblval-${sub.key}"
+        value="${val > 0 ? val : ''}"
+        placeholder="—"
+        min="0" step="0.01"
+        onfocus="this.select()"
+        onchange="saveVal('${section}','${cat}','${sub.key}',this)"
+        onkeydown="if(event.key==='Enter'){this.blur()}"
+      >
+    </div>
+  </div>`;
+}
+
+function saveVal(section, cat, key, inp) {
+  const val = parseFloat(inp.value) || 0;
+  setDB(section, cat, key, val);
+  save();
+
+  // update input style
+  inp.className = 'tbl-val' + (val === 0 ? ' empty-val' : '');
+
+  // no group totals
+
+  // update subtotal
+  const total = catSum(section, cat);
+  const subEl = document.getElementById('tbl-subtotal');
+  if (subEl) subEl.textContent = fmtFull(total);
+}
+
+// ══════════════════════════════════════════════
+// INVESTMENTS
+// ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// INVESTMENTS v2 — per-portfolio with history
+// ══════════════════════════════════════════════
+
+const INV_PORTFOLIOS = {
+  xau_banka:   {label:'XAU - Banka',   unit:'g',  unitLabel:'gram', color:'#B8860B', priceLabel:'Cijena zlata (€/g)'},
+  xau_revolut: {label:'XAU - Revolut', unit:'g',  unitLabel:'gram', color:'#C47A1E', priceLabel:'Cijena zlata (€/g)'},
+  sp500:       {label:'S&P 500',       unit:'udj', unitLabel:'udjel', color:'#2A6BAD', priceLabel:'Cijena udjela (€/udj)'},
+};
+
+function invLoad(key)  { try { return JSON.parse(localStorage.getItem('inv2_'+key)||'[]'); } catch(e){return[];} }
+function invSave(key,d){ localStorage.setItem('inv2_'+key, JSON.stringify(d)); }
+function priceLoad(key){ return parseFloat(localStorage.getItem('invprice_'+key)||'0')||0; }
+function priceSave(key,v){ localStorage.setItem('invprice_'+key, v); }
+
+let currentPortfolio = 'xau_banka';
+
+function showInvPortfolio(key, el) {
+  currentPortfolio = key;
+  document.querySelectorAll('.inv-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderInvPortfolio();
+}
+
+function renderInvPortfolio() {
+  const key  = currentPortfolio;
+  const p    = INV_PORTFOLIOS[key];
+  const data = invLoad(key);
+  const curPrice = priceLoad(key);
+  const today_val = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+
+  // ── Current price card ──
+  document.getElementById('inv-price-body').innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;max-width:380px">
+      <label class="fl" style="white-space:nowrap;margin-bottom:0">${p.priceLabel}</label>
+      <input type="number" id="inv-cur-price" value="${curPrice||''}" placeholder="0.00" min="0" step="0.01"
+        style="flex:1" oninput="priceSave('${key}',this.value);renderInvPortfolio()">
+      <span style="font-size:14px;color:var(--muted)">€</span>
+    </div>`;
+
+  // ── Form ──
+  document.getElementById('inv-form-title').textContent = `Nova kupnja — ${p.label}`;
+  document.getElementById('inv-form-body').innerHTML = `
+    <div class="fg">
+      <div><label class="fl">Mjesec i godina</label>
+        <div style="display:flex;gap:6px">
+          <select id="inv-f-month" style="flex:1">
+            ${['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'].map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${i+1===new Date().getMonth()+1?'selected':''}>${m}</option>`).join('')}
+          </select>
+          <select id="inv-f-year" style="flex:1">
+            ${Array.from({length:5},(_,i)=>new Date().getFullYear()-2+i).map(y=>`<option value="${y}" ${y===new Date().getFullYear()?'selected':''}>${y}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div><label class="fl">Količina (${p.unitLabel})</label><input type="number" id="inv-f-qty" placeholder="0.00" min="0" step="0.001"></div>
+      <div><label class="fl">Cijena (€/${p.unitLabel})</label><input type="number" id="inv-f-price" placeholder="0.00" min="0" step="0.01"></div>
+      <div><label class="fl">Bilješka</label><input type="text" id="inv-f-note" placeholder="Opcionalno..."></div>
+    </div>
+    <button class="btn btn-p" onclick="addInvPurchase('${key}')">+ Dodaj kupnju</button>`;
+
+  // ── Summary ──
+  const totalQty      = data.reduce((s,i)=>s+i.qty,0);
+  const totalInvested = data.reduce((s,i)=>s+i.qty*i.price,0);
+  const currentVal    = totalQty * curPrice;
+  const gain          = currentVal - totalInvested;
+  const gainPct       = totalInvested > 0 ? ((gain/totalInvested)*100).toFixed(2) : '0.00';
+  const pos           = gain >= 0;
+  const avgPrice      = totalQty > 0 ? totalInvested/totalQty : 0;
+
+  document.getElementById('inv-summary').innerHTML = `
+    <div class="inv-portfolio-metric">
+      <div class="mc"><div class="mc-l">Ukupno (${p.unitLabel})</div><div class="mc-v neu">${totalQty.toLocaleString('hr-HR',{minimumFractionDigits:3,maximumFractionDigits:3})}</div></div>
+      <div class="mc"><div class="mc-l">Uloženo ukupno</div><div class="mc-v neg">${fmtFull(totalInvested)}</div></div>
+      <div class="mc"><div class="mc-l">Trenutna vrijednost</div><div class="mc-v neu">${fmtFull(currentVal)}</div></div>
+      <div class="mc"><div class="mc-l">Profit / Gubitak</div><div class="mc-v ${pos?'pos':'neg'}">${pos?'+':'−'}${fmtFull(Math.abs(gain))} (${pos?'+':''}${gainPct}%)</div></div>
+      <div class="mc"><div class="mc-l">Prosj. cijena (€/${p.unitLabel})</div><div class="mc-v neu">${avgPrice>0?fmtFull(avgPrice):'—'}</div></div>
+      <div class="mc"><div class="mc-l">Trenutna cijena</div><div class="mc-v neu">${curPrice>0?fmtFull(curPrice):'—'}</div></div>
+    </div>`;
+
+  // ── History ──
+  const el = document.getElementById('inv-history');
+  if (!data.length) {
+    el.innerHTML = '<div class="empty">Nema kupnji. Dodajte prvu gore.</div>';
+    return;
+  }
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:100px 1fr 1fr 1fr 1fr auto;gap:0;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <span>Datum</span><span>Količina</span><span>Cijena</span><span>Uloženo</span><span>Tren. vrijednost</span><span></span>
+    </div>
+    ${data.map(item=>{
+      const invested = item.qty * item.price;
+      const curV     = item.qty * curPrice;
+      const g        = curV - invested;
+      const gPos     = g >= 0;
+      return `<div style="display:grid;grid-template-columns:100px 1fr 1fr 1fr 1fr auto;gap:0;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border)">
+        <span style="font-size:13px;color:var(--muted)">${item.date.length===7?item.date.slice(0,7):item.date.slice(0,7)}</span>
+        <span style="font-size:14px;font-weight:500">${item.qty.toLocaleString('hr-HR',{minimumFractionDigits:3,maximumFractionDigits:3})} ${p.unitLabel}</span>
+        <span style="font-size:13px;color:var(--muted)">${fmtFull(item.price)}/${p.unitLabel}</span>
+        <span style="font-size:14px;font-weight:600">${fmtFull(invested)}</span>
+        <span style="font-size:14px;font-weight:600;color:${gPos?'var(--green)':'var(--red)'}">${fmtFull(curV)} <span style="font-size:11px">${gPos?'+':'−'}${fmtFull(Math.abs(g))}</span></span>
+        <button class="db" onclick="delInvPurchase('${key}',${item.id})">×</button>
+      </div>`;
+    }).join('')}`;
+}
+
+function addInvPurchase(key) {
+  const qty   = parseFloat(document.getElementById('inv-f-qty').value);
+  const price = parseFloat(document.getElementById('inv-f-price').value);
+  const month = document.getElementById('inv-f-month').value;
+  const year  = document.getElementById('inv-f-year').value;
+  const date  = `${year}-${month}`;
+  const note  = document.getElementById('inv-f-note').value.trim();
+  if (!qty || !price) { alert('Molim unesite količinu i cijenu.'); return; }
+  const data = invLoad(key);
+  data.push({id:Date.now(), date, qty, price, note});
+  data.sort((a,b)=>b.date.localeCompare(a.date));
+  invSave(key, data);
+  document.getElementById('inv-f-qty').value   = '';
+  document.getElementById('inv-f-price').value = '';
+  document.getElementById('inv-f-note').value  = '';
+  renderInvPortfolio();
+}
+
+function delInvPurchase(key, id) {
+  invSave(key, invLoad(key).filter(x=>x.id!==id));
+  renderInvPortfolio();
+}
+
+// Legacy compatibility for dashboard charts
+function renderInvList() { renderInvPortfolio(); }
+
+// ══════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════
+const charts={};
+function renderDash(){
+  buildHeaderPeriodPicker();
+  const MONTHS_HR = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
+                     'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
+  document.getElementById('dash-month').innerHTML = testMode
+    ? '<span style="background:#FFF3E0;color:#9A5B0A;padding:2px 10px;border-radius:12px;font-size:13px;font-weight:600">⚗ TEST MODE</span>'
+    : MONTHS_HR[selMonth-1] + ' ' + selYear;
+
+  // rashodi = sve osim 'prihodi' i 'zajednicki'
+  const planPrihod  = bucketSum('planned','prihod');
+  const planRashod  = bucketSum('planned','rashod');
+  const planBal     = planPrihod - planRashod;
+  const actPrihod   = bucketSum('actual','prihod');
+  const actRashod   = bucketSum('actual','rashod');
+  const actBal      = actPrihod - actRashod;
+
+  const totInv  = Object.keys(INV_PORTFOLIOS).reduce((s,key)=>{
+    const d=invLoad(key); const cp=priceLoad(key);
+    return s+d.reduce((a,i)=>a+i.qty,0)*cp;
+  },0);
+  const totInvd = Object.keys(INV_PORTFOLIOS).reduce((s,key)=>{
+    return s+invLoad(key).reduce((a,i)=>a+i.qty*i.price,0);
+  },0);
+  const invG = totInv-totInvd;
+
+  const planZaj = bucketSum('planned','zajednicki');
+  const actZaj  = bucketSum('actual','zajednicki');
+  const zajBal  = planZaj - actZaj;
+  const pocetno = loadPocetnoStanje();
+  // Uplata na zajednički račun puni račun
+  const uplataP = getDB('planned','zajednicki','zajednicki_uplata');
+  const uplataA = getDB('actual','zajednicki','zajednicki_uplata');
+  // Zajednički troškovi = SVE iz zajednički bucketa (uključujući i druge kategorije označene kao zajednički)
+  const sviZajTroskoviPlan = ALL_CATS.reduce((t,cat)=>t+SUBCATS[cat].reduce((s,sub)=>{
+    if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata'))
+      return s+getDB('planned',cat,sub.key);
+    return s;
+  },0),0);
+  const sviZajTroskoviAct = ALL_CATS.reduce((t,cat)=>t+SUBCATS[cat].reduce((s,sub)=>{
+    if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata'))
+      return s+getDB('actual',cat,sub.key);
+    return s;
+  },0),0);
+  const zajTroskoviPlan = sviZajTroskoviPlan;
+  const zajTroskoviAct  = sviZajTroskoviAct;
+  // Stanje = početno + uplata − svi zajednički troškovi
+  const planStanje = pocetno + uplataP - zajTroskoviPlan;
+  const actStanje  = pocetno + uplataA  - zajTroskoviAct;
+
+  document.getElementById('dash-flow').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px">
+      <div class="mc"><div class="mc-l">Planirani prihod</div><div class="mc-v pos">${fmtFull(planPrihod)}</div></div>
+      <div class="mc"><div class="mc-l">Stvarni prihod</div><div class="mc-v pos">${fmtFull(actPrihod)}</div></div>
+      <div class="mc"><div class="mc-l">Planirani rashod</div><div class="mc-v neg">${fmtFull(planRashod)}</div></div>
+      <div class="mc"><div class="mc-l">Stvarni rashod</div><div class="mc-v neg">${fmtFull(actRashod)}</div></div>
+      <div class="mc"><div class="mc-l">Planirani zajednički troškovi</div><div class="mc-v neg">${fmtFull(zajTroskoviPlan)}</div></div>
+      <div class="mc"><div class="mc-l">Stvarni zajednički troškovi</div><div class="mc-v neg">${fmtFull(zajTroskoviAct)}</div></div>
+      <div class="mc"><div class="mc-l">Planirano stanje zajedničkog računa</div><div class="mc-v ${planStanje>=0?'pos':'neg'}">${planStanje>=0?'':'−'}${fmtFull(Math.abs(planStanje))}</div></div>
+      <div class="mc"><div class="mc-l">Stvarno stanje zajedničkog računa</div><div class="mc-v ${actStanje>=0?'pos':'neg'}">${actStanje>=0?'':'−'}${fmtFull(Math.abs(actStanje))}</div></div>
+      <div class="mc"><div class="mc-l">Planirana bilanca</div><div class="mc-v ${planBal>=0?'pos':'neg'}">${planBal>=0?'+':'−'}${fmtFull(Math.abs(planBal))}</div></div>
+      <div class="mc"><div class="mc-l">Stvarna bilanca</div><div class="mc-v ${actBal>=0?'pos':'neg'}">${actBal>=0?'+':'−'}${fmtFull(Math.abs(actBal))}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:22px">
+      <div class="mc"><div class="mc-l">Portfelj ukupno</div><div class="mc-v neu">${fmtFull(totInv)}</div><div class="mc-s">${invG>=0?'+':'−'}${fmtFull(Math.abs(invG))} vs uloženo</div></div>
+    </div>`;
+
+  const expCats=CATS.filter(c=>c!=='prihodi'&&c!=='zajednicki');
+  const pvaHeight = Math.max(200, expCats.length * 44 + 60);
+  document.getElementById('chartPvA').parentElement.style.height = pvaHeight + 'px';
+  if(charts.pva) charts.pva.destroy();
+  charts.pva=new Chart(document.getElementById('chartPvA'),{
+    type:'bar',
+    data:{
+      labels:expCats.map(c=>META[c].label),
+      datasets:[
+        {label:'Planirano',data:expCats.map(c=>catSum('planned',c)),backgroundColor:'#2D9E6B',borderRadius:3},
+        {label:'Stvarno',  data:expCats.map(c=>catSum('actual',c)), backgroundColor:'#D94F3D',borderRadius:3},
+      ]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{labels:{boxWidth:11,font:{size:11}}}},
+      scales:{
+        x:{ticks:{callback:v=>v.toLocaleString()+'€',font:{size:10}},grid:{color:'rgba(0,0,0,0.04)'}},
+        y:{grid:{display:false},ticks:{font:{size:11}}}
+      }
+    }
+  });
+
+  // ── Plan breakdown: sorted list with bars ──
+  document.getElementById('chart-plan-year').textContent = selYear;
+  const planYear = selYear;
+  const expCatsList = CATS.filter(cc=>cc!=='prihodi'&&cc!=='zajednicki');
+
+  const planYearTotals = expCatsList.map(cat => {
+    let total = 0;
+    for(let m=1; m<=12; m++){
+      const mk = String(m).padStart(2,'0');
+      SUBCATS[cat].forEach(sub => {
+        const stored = parseFloat(localStorage.getItem(`fp_${cat}_${sub.key}_${planYear}-${mk}`)||'0')||0;
+        const def    = stored > 0 ? stored : getDefault('planned', cat, sub.key);
+        total += def;
+      });
+    }
+    return {label: META[cat].label, icon: META[cat].icon, val: total, color: META[cat].color};
+  }).filter(x => x.val > 0).sort((a,b) => b.val - a.val);
+
+  const planTotal = planYearTotals.reduce((s,x)=>s+x.val,0);
+  if(charts.plan) { charts.plan.destroy(); charts.plan = null; }
+
+  const planBody = document.getElementById('chart-plan-body');
+  if(planBody) {
+    if(!planYearTotals.length) {
+      planBody.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nema planiranih troškova za ' + planYear + '</div>';
+    } else {
+      planBody.innerHTML = planYearTotals.map(x => {
+        const pct = planTotal > 0 ? (x.val/planTotal)*100 : 0;
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+            <span style="font-size:13px;display:flex;align-items:center;gap:5px">
+              <span style="width:9px;height:9px;border-radius:50%;background:${x.color};display:inline-block;flex-shrink:0"></span>
+              ${x.icon} ${x.label}
+            </span>
+            <span style="font-size:12px;font-weight:600;color:var(--text)">${fmtFull(x.val)}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+              <div style="height:100%;width:${pct.toFixed(1)}%;background:${x.color};border-radius:3px;transition:width .4s"></div>
+            </div>
+            <span style="font-size:11px;color:var(--muted);min-width:36px;text-align:right">${pct.toFixed(1)}%</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ── Line chart: stanje zajedničkog računa po mjesecima za cijelu godinu ──
+  const zajYear = selYear;
+  document.getElementById('chart-zaj-year').textContent = zajYear;
+  const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
+  const pocetnoStanje = loadPocetnoStanje();
+
+  function calcStanjeForMonth(section, year, month) {
+    const mkKey = (pfx,cat,sub) => `${pfx}_${cat}_${sub}_${year}-${String(month).padStart(2,'0')}`;
+    const uplata = parseFloat(localStorage.getItem(mkKey('fa','zajednicki','zajednicki_uplata'))||'0')||0;
+    // all zajednicki bucket items except uplata
+    let troskovi = 0;
+    ALL_CATS.forEach(cat => {
+      SUBCATS[cat].forEach(sub => {
+        if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata')) {
+          const pfx = section==='planned'?'fp':'fa';
+          troskovi += parseFloat(localStorage.getItem(`${pfx}_${cat}_${sub.key}_${year}-${String(month).padStart(2,'0')}`)||'0')||0;
+        }
+      });
+    });
+    return {uplata, troskovi};
+  }
+
+  // Build cumulative planned and actual stanje for all 12 months
+  const planLine = [], actLine = [];
+  let cumPlan = pocetnoStanje, cumAct = pocetnoStanje;
+  for(let m=1; m<=12; m++){
+    const pData = calcStanjeForMonth('planned', zajYear, m);
+    const aData = calcStanjeForMonth('actual',  zajYear, m);
+    // planned uplata from planned section
+    const planUplata = (()=>{
+      const pfx='fp'; const cat='zajednicki'; const sub='zajednicki_uplata';
+      return parseFloat(localStorage.getItem(`${pfx}_${cat}_${sub}_${zajYear}-${String(m).padStart(2,'0')}`)||'0')||0;
+    })();
+    cumPlan += planUplata - pData.troskovi;
+    cumAct  += aData.uplata - aData.troskovi;
+    planLine.push(Math.round(cumPlan*100)/100);
+    actLine.push(Math.round(cumAct*100)/100);
+  }
+
+  if(charts.zaj) charts.zaj.destroy();
+  charts.zaj = new Chart(document.getElementById('chartZaj'),{
+    type:'line',
+    data:{
+      labels: MONTHS_SHORT,
+      datasets:[
+        {label:'Planirano', data:planLine, borderColor:'#5B7ED6', backgroundColor:'rgba(91,126,214,0.08)',
+         borderWidth:2, pointRadius:3, pointBackgroundColor:'#5B7ED6', tension:0.3, fill:true},
+        {label:'Stvarno',   data:actLine,  borderColor:'#2D9E6B', backgroundColor:'rgba(45,158,107,0.08)',
+         borderWidth:2, pointRadius:3, pointBackgroundColor:'#2D9E6B', tension:0.3, fill:true},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{boxWidth:11,font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:10}}},
+        y:{ticks:{callback:v=>v.toLocaleString('hr-HR',{maximumFractionDigits:0})+'€', font:{size:10}}}
+      }
+    }
+  });
+
+  document.getElementById('dash-table').innerHTML=`
+    <thead><tr>
+      <th>Kategorija</th>
+      <th style="text-align:right">Planirano</th>
+      <th style="text-align:right">Stvarno</th>
+      <th style="text-align:right">Razlika</th>
+    </tr></thead>
+    <tbody>${CATS.filter(c=>c!=='zajednicki').map(c=>{
+      const m=META[c], plan=catSum('planned',c), act=catSum('actual',c);
+      const diff=m.income?(act-plan):(plan-act);
+      const dc=diff>=0?'var(--green)':'var(--red)', ds=diff>=0?'+':'−';
+      return `<tr>
+        <td style="padding:9px 0"><span style="display:inline-flex;align-items:center;gap:8px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${m.color};display:inline-block;flex-shrink:0"></span>
+          ${m.icon} ${m.label}
+        </span></td>
+        <td style="text-align:right;color:${m.income?'var(--green)':'var(--text)'}">${plan>0?fmtFull(plan):'—'}</td>
+        <td style="text-align:right;color:${m.income?'var(--green)':'var(--red)'}">${act>0?fmtFull(act):'—'}</td>
+        <td style="text-align:right;color:${dc};font-weight:600">${ds}${fmtFull(Math.abs(diff))}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+}
+
+// ── DRAWER ──
+function closeDrawer(){const d=document.getElementById("drawer"),o=document.getElementById("drawer-overlay");if(d)d.classList.remove("open");if(o)o.classList.remove("open");document.body.style.overflow="";}
+function openDrawer(){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+
+
+
+// Period picker in header (compact)
+function buildHeaderPeriodPicker(){
+  const bar = document.getElementById('period-bar-header');
+  if(!bar) return;
+  const now = new Date();
+  const startYear = 2024, endYear = now.getFullYear()+1;
+  const years = Array.from({length:endYear-startYear+1},(_,i)=>startYear+i);
+  const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
+  bar.innerHTML = `
+    <select onchange="handleMonthChange(this.value,'refreshCurrentPage()')">
+      ${MONTHS_SHORT.map((m,i)=>`<option value="${i+1}"${i+1===selMonth&&!testMode?' selected':''}>${m}</option>`).join('')}
+      <option value="TEST" ${testMode?' selected':''}>TEST</option>
+    </select>
+    <select onchange="selYear=+this.value;refreshCurrentPage()">
+      ${years.map(y=>`<option value="${y}"${y===selYear?' selected':''}>${y}</option>`).join('')}
+    </select>`;
+}
+
+function refreshCurrentPage(){
+  const activePage = document.querySelector('.page.active');
+  if(!activePage) return;
+  const id = activePage.id.replace('page-','');
+  if(id==='dashboard') renderDash();
+  else if(id==='cat' && typeof _sec!=='undefined') renderCatPage(_sec,_cat);
+}
+
+
+// ══════════════════════════════════════════════
+// GOOGLE SHEETS SYNC
+// ══════════════════════════════════════════════
+const SYNC_URL = 'https://script.google.com/macros/s/AKfycbyBV42erPrF1zcsNf_4uxXLyKpWhGnE6wcdWou2lxuxVis5VLACTAsr3gIJYedFXBBG/exec';
+let syncTimeout = null;
+let lastSyncTime = null;
+let isSyncing = false;
+
+function setSyncStatus(state, msg) {
+  const dot = document.getElementById('sync-dot');
+  const txt = document.getElementById('sync-status');
+  if(!dot || !txt) return;
+  dot.className = 'sync-dot ' + state;
+  txt.textContent = msg;
+}
+
+async function pushToCloud(retries=2) {
+  if(isSyncing) return;
+  isSyncing = true;
+  setSyncStatus('syncing', 'Spremanje...');
+  try {
+    // Collect all localStorage keys belonging to this app
+    const data = {};
+    for(let i=0; i<localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if(k.startsWith('fp_')||k.startsWith('fa_')||k.startsWith('finv')||
+         k.startsWith('inv2_')||k.startsWith('invprice_')||
+         k.startsWith('bucket_')||k.startsWith('rashod_')||
+         k.startsWith('pocetno_')||k.startsWith('inv2_')) {
+        data[k] = localStorage.getItem(k);
+      }
+    }
+    const res = await fetch(SYNC_URL, {
+      method:'POST',
+      body: JSON.stringify({action:'write', data}),
+    });
+    const json = await res.json();
+    if(json.status === 'ok') {
+      lastSyncTime = new Date();
+      setSyncStatus('ok', 'Sinkronizirano ' + lastSyncTime.toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'}));
+    } else {
+      setSyncStatus('err', 'Greška pri spremanju');
+    }
+  } catch(e) {
+    if(retries > 0) { isSyncing=false; setTimeout(()=>pushToCloud(retries-1), 2000); return; }
+    setSyncStatus('err', 'Nema veze — podaci lokalno sačuvani');
+  } finally {
+    isSyncing = false;
+  }
+}
+
+async function pullFromCloud() {
+  setSyncStatus('syncing', 'Učitavanje...');
+  try {
+    const res = await fetch(SYNC_URL + '?action=read');
+    const json = await res.json();
+    if(json.status === 'ok' && json.data && Object.keys(json.data).length > 0) {
+      Object.entries(json.data).forEach(([k,v]) => localStorage.setItem(k, v));
+      setSyncStatus('ok', 'Podaci učitani');
+      return true;
+    } else {
+      setSyncStatus('ok', 'Nema podataka u oblaku');
+      return false;
+    }
+  } catch(e) {
+    setSyncStatus('err', 'Nema veze — koristim lokalne podatke');
+    return false;
+  }
+}
+
+// Debounced auto-push after any save
+const _origSave = save;
+function save() {
+  _origSave();
+  clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(pushToCloud, 1500);
+}
+
+async function syncNow() {
+  setSyncStatus('syncing', 'Sinkronizacija...');
+  await pushToCloud();
+}
+
+// On init — pull from cloud first, then render
+async function initWithSync() {
+  setSyncStatus('syncing', 'Učitavanje podataka...');
+  const loaded = await pullFromCloud();
+  if(loaded) {
+    // Reload DB from localStorage after pull
+    CATS.forEach(cat => {
+      SUBCATS[cat].forEach(sub => {
+        DB.planned[cat][sub.key] = undefined; // force re-read via getDB
+        DB.actual[cat][sub.key]  = undefined;
+      });
+    });
+    DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
+  }
+  buildHeaderPeriodPicker ? buildHeaderPeriodPicker() : null;
+  renderDash();
+}
+
+// ── INIT ──
+initWithSync();
+</script>
+</body>
+</html>
