@@ -942,7 +942,9 @@ function renderInvPortfolio() {
     <div style="display:flex;align-items:center;gap:12px;max-width:380px">
       <label class="fl" style="white-space:nowrap;margin-bottom:0">${p.priceLabel}</label>
       <input type="number" id="inv-cur-price" value="${curPrice||''}" placeholder="0.00" min="0" step="0.01"
-        style="flex:1" oninput="priceSave('${key}',this.value);renderInvPortfolio()">
+        style="flex:1"
+        onchange="priceSave('${key}',this.value);renderInvPortfolio()"
+        onblur="if(this.value)priceSave('${key}',this.value);renderInvPortfolio()">
       <span style="font-size:14px;color:var(--muted)">€</span>
     </div>`;
 
@@ -1103,8 +1105,38 @@ function renderDash(){
       <div class="mc"><div class="mc-l">Planirana bilanca</div><div class="mc-v ${planBal>=0?'pos':'neg'}">${planBal>=0?'+':'−'}${fmtFull(Math.abs(planBal))}</div></div>
       <div class="mc"><div class="mc-l">Stvarna bilanca</div><div class="mc-v ${actBal>=0?'pos':'neg'}">${actBal>=0?'+':'−'}${fmtFull(Math.abs(actBal))}</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:22px">
-      <div class="mc"><div class="mc-l">Portfelj ukupno</div><div class="mc-v neu">${fmtFull(totInv)}</div><div class="mc-s">${invG>=0?'+':'−'}${fmtFull(Math.abs(invG))} vs uloženo</div></div>
+    <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Investicije</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px">
+      ${Object.entries(INV_PORTFOLIOS).map(([key,p])=>{
+        const d = invLoad(key);
+        const cp = priceLoad(key);
+        const qty = d.reduce((s,i)=>s+i.qty,0);
+        const invested = d.reduce((s,i)=>s+i.qty*i.price,0);
+        const curVal = qty * cp;
+        const gain = curVal - invested;
+        const gainPct = invested > 0 ? ((gain/invested)*100).toFixed(2) : '0.00';
+        const pos = gain >= 0;
+        return `<div class="mc" style="border-left:3px solid ${p.color}">
+          <div class="mc-l" style="display:flex;align-items:center;gap:5px">
+            <span style="width:7px;height:7px;border-radius:50%;background:${p.color};flex-shrink:0"></span>
+            ${p.label}
+          </div>
+          <div class="mc-v neu" style="font-size:18px">${fmtFull(curVal)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Uloženo: ${fmtFull(invested)}</div>
+          <div style="font-size:12px;font-weight:600;margin-top:2px;color:${pos?'var(--green)':'var(--red)'}">
+            ${pos?'+':'−'}${fmtFull(Math.abs(gain))} (${pos?'+':''}${gainPct}%)
+          </div>
+          ${cp===0?'<div style="font-size:10px;color:var(--amber);margin-top:2px">⚠ Unesite trenutnu cijenu</div>':''}
+        </div>`;
+      }).join('')}
+      <div class="mc" style="border-left:3px solid var(--accent)">
+        <div class="mc-l">Portfelj ukupno</div>
+        <div class="mc-v neu" style="font-size:18px">${fmtFull(totInv)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Uloženo: ${fmtFull(totInvd)}</div>
+        <div style="font-size:12px;font-weight:600;margin-top:2px;color:${invG>=0?'var(--green)':'var(--red)'}">
+          ${invG>=0?'+':'−'}${fmtFull(Math.abs(invG))} (${totInvd>0?((invG/totInvd)*100).toFixed(2):'0.00'}%)
+        </div>
+      </div>
     </div>`;
 
   const expCats=CATS.filter(c=>c!=='prihodi'&&c!=='zajednicki');
