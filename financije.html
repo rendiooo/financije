@@ -1250,13 +1250,15 @@ async function pushToCloud(retries=2) {
   setSyncStatus('syncing', 'Spremanje...');
   try {
     // Collect all localStorage keys belonging to this app
-    const data = {};
+    const ts = Date.now();
+    localStorage.setItem('_sync_ts', ts);
+    const data = {'_sync_ts': String(ts)};
     for(let i=0; i<localStorage.length; i++) {
       const k = localStorage.key(i);
       if(k.startsWith('fp_')||k.startsWith('fa_')||k.startsWith('finv')||
          k.startsWith('inv2_')||k.startsWith('invprice_')||
          k.startsWith('bucket_')||k.startsWith('rashod_')||
-         k.startsWith('pocetno_')||k.startsWith('inv2_')) {
+         k.startsWith('pocetno_')) {
         data[k] = localStorage.getItem(k);
       }
     }
@@ -1284,17 +1286,26 @@ async function pullFromCloud() {
   try {
     const res = await fetch(SYNC_URL + '?action=read', {cache: 'no-store'});
     const json = await res.json();
-    if(json.status === 'ok' && json.data && Object.keys(json.data).length > 0) {
-      // Clear old app keys before writing new ones
-      const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
-      Object.keys(localStorage).filter(k => appPrefixes.some(p=>k.startsWith(p)))
+    if(json.status !== 'ok' || !json.data || Object.keys(json.data).length === 0) {
+      setSyncStatus('ok', 'Nema podataka u oblaku');
+      return false;
+    }
+
+    const cloudTs  = parseInt(json.data['_sync_ts'] || '0');
+    const localTs  = parseInt(localStorage.getItem('_sync_ts') || '0');
+
+    // Only overwrite local if cloud is newer
+    if(cloudTs > localTs) {
+      const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','_sync_ts'];
+      Object.keys(localStorage)
+        .filter(k => appPrefixes.some(p => k.startsWith(p)))
         .forEach(k => localStorage.removeItem(k));
       Object.entries(json.data).forEach(([k,v]) => localStorage.setItem(k, v));
       const time = new Date().toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'});
       setSyncStatus('ok', 'Podaci učitani u ' + time);
       return true;
     } else {
-      setSyncStatus('ok', 'Nema podataka u oblaku');
+      setSyncStatus('ok', 'Lokalni podaci su ažurniji');
       return false;
     }
   } catch(e) {
