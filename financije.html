@@ -1282,11 +1282,16 @@ async function pushToCloud(retries=2) {
 async function pullFromCloud() {
   setSyncStatus('syncing', 'Učitavanje...');
   try {
-    const res = await fetch(SYNC_URL + '?action=read');
+    const res = await fetch(SYNC_URL + '?action=read', {cache: 'no-store'});
     const json = await res.json();
     if(json.status === 'ok' && json.data && Object.keys(json.data).length > 0) {
+      // Clear old app keys before writing new ones
+      const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
+      Object.keys(localStorage).filter(k => appPrefixes.some(p=>k.startsWith(p)))
+        .forEach(k => localStorage.removeItem(k));
       Object.entries(json.data).forEach(([k,v]) => localStorage.setItem(k, v));
-      setSyncStatus('ok', 'Podaci učitani');
+      const time = new Date().toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'});
+      setSyncStatus('ok', 'Podaci učitani u ' + time);
       return true;
     } else {
       setSyncStatus('ok', 'Nema podataka u oblaku');
@@ -1316,16 +1321,16 @@ async function initWithSync() {
   setSyncStatus('syncing', 'Učitavanje podataka...');
   const loaded = await pullFromCloud();
   if(loaded) {
-    // Reload DB from localStorage after pull
+    // Reinitialize DB from freshly populated localStorage
     CATS.forEach(cat => {
       SUBCATS[cat].forEach(sub => {
-        DB.planned[cat][sub.key] = undefined; // force re-read via getDB
-        DB.actual[cat][sub.key]  = undefined;
+        // Clear any cached values — getDB reads localStorage directly so no cache needed
       });
     });
     DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
+    bucketCfg = loadBucketConfig();
   }
-  buildHeaderPeriodPicker ? buildHeaderPeriodPicker() : null;
+  typeof buildHeaderPeriodPicker === 'function' ? buildHeaderPeriodPicker() : null;
   renderDash();
 }
 
