@@ -689,7 +689,8 @@ function togglePortfolio(key, enabled) {
   cfg[key] = enabled;
   savePortConfig(cfg);
   renderSettings();
-  const navEl = document.querySelector(`.nc[onclick*="goInv('${key}')"]`);
+  const sel = '.nc[onclick*="goInv(\'' + key + '\')"]';
+  const navEl = document.querySelector(sel);
   if(navEl) navEl.style.display = enabled ? '' : 'none';
 }
 
@@ -1512,7 +1513,8 @@ async function initWithSync() {
   const cfg = loadPortConfig();
   Object.keys(INV_PORTFOLIOS_DEF).forEach(key => {
     if(cfg[key] === false) {
-      const navEl = document.querySelector(`.nc[onclick*="goInv('${key}')"]`);
+      const sel = '.nc[onclick*="goInv(\'' + key + '\')"]';
+      const navEl = document.querySelector(sel);
       if(navEl) navEl.style.display = 'none';
     }
   });
