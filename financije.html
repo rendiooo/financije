@@ -373,7 +373,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <!-- SYNC BAR -->
   <div class="sync-bar" id="sync-bar">
     <div class="sync-dot" id="sync-dot"></div>
-    <span id="sync-status">Povezivanje...</span>
+    <span id="sync-status">—</span>
     <button class="sync-btn" onclick="syncNow()">💾 Spremi u oblak</button>
   </div>
 
@@ -1320,18 +1320,24 @@ function renderDash(){
   const pocetnoStanje = loadPocetnoStanje();
 
   function calcStanjeForMonth(section, year, month) {
-    const mkKey = (pfx,cat,sub) => `${pfx}_${cat}_${sub}_${year}-${String(month).padStart(2,'0')}`;
-    const uplata = parseFloat(localStorage.getItem(mkKey('fa','zajednicki','zajednicki_uplata'))||'0')||0;
-    // all zajednicki bucket items except uplata
+    const mk = String(month).padStart(2,'0');
+    const periodSave = periodKey(); // save current period
+    // Temporarily set period to this month/year for getDB to work
+    const savedYear = selYear, savedMonth = selMonth, savedTest = testMode;
+    selYear = year; selMonth = month; testMode = false;
+
+    const uplata = getDB(section==='actual'?'actual':'planned', 'zajednicki', 'zajednicki_uplata');
     let troskovi = 0;
     ALL_CATS.forEach(cat => {
       SUBCATS[cat].forEach(sub => {
         if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata')) {
-          const pfx = section==='planned'?'fp':'fa';
-          troskovi += parseFloat(localStorage.getItem(`${pfx}_${cat}_${sub.key}_${year}-${String(month).padStart(2,'0')}`)||'0')||0;
+          troskovi += getDB(section, cat, sub.key);
         }
       });
     });
+
+    // Restore period
+    selYear = savedYear; selMonth = savedMonth; testMode = savedTest;
     return {uplata, troskovi};
   }
 
@@ -1589,34 +1595,20 @@ function reloadAndRender() {
 
 // ── INIT — pull after PIN unlock ──────────────
 async function initWithSync() {
+  // Build period picker first
+  if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
+  // Pull from cloud immediately
+  setSyncStatus('syncing', 'Učitavanje...');
+  const ok = await pullFromCloud();
+  // Load fresh data into DB
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
-  if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
+  // Render everything
   renderDash();
-  // Pull on start (after PIN)
-  await pullAndRender();
 }
 
 // ── INIT ─────────────────────────────────────
-async function initWithSync() {
-  // Render from local immediately
-  DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
-  bucketCfg = loadBucketConfig();
-  if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
-  renderDash();
-  // Pull on start (slight delay so page is ready)
-  setTimeout(async () => {
-    const ok = await pullFromCloud();
-    if(ok) reloadAndRender();
-  }, 600);
-  // Auto-pull every 60s ONLY if no pending local changes
-  setInterval(async () => {
-    if(lastEditTime <= lastPushTime) {
-      const ok = await pullFromCloud();
-      if(ok) reloadAndRender();
-    }
-  }, 60000);
-}
+
 
 // ── INIT ──
 // Hide disabled portfolios in sidebar
