@@ -169,6 +169,12 @@ input:focus,select:focus{border-color:var(--accent2);background:#fff}
 .set-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .set-row-label{font-size:14px;color:var(--text);flex:1;min-width:0}
 .set-radios{display:flex;gap:4px;flex-shrink:0}
+.toggle-switch{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--border);border-radius:20px;transition:.2s}
+.toggle-slider:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+input:checked+.toggle-slider{background:var(--accent)}
+input:checked+.toggle-slider:before{transform:translateX(16px)}
 .set-defaults{display:flex;gap:4px;flex-shrink:0;margin-right:8px}
 .set-def-inp{width:72px;padding:4px 7px;border:1px solid var(--border);border-radius:var(--rsm);font-family:inherit;font-size:13px;background:var(--bg);color:var(--text);text-align:right;outline:none;-webkit-appearance:none}
 .set-def-inp:focus{border-color:var(--accent2);background:#fff}
@@ -400,6 +406,11 @@ input:focus,select:focus{border-color:var(--accent2);background:#fff}
       </div>
       <p style="font-size:12px;color:var(--muted);margin-top:8px">Ovo se koristi za izračun planiranog i stvarnog stanja zajedničkog računa na dashboardu.</p>
     </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:14px">Investicijski portfelji</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Uključite ili isključite portfelje koji se prikazuju na dashboardu i u navigaciji.</p>
+      <div id="settings-portfolios"></div>
+    </div>
     <div id="settings-body"></div>
   </div>
 
@@ -553,6 +564,24 @@ function renderSettings() {
   bucketCfg = loadBucketConfig();
   const pocEl = document.getElementById('pocetno-stanje');
   if (pocEl) pocEl.value = loadPocetnoStanje() || '';
+  const portCfg = loadPortConfig();
+
+  // Render portfolio toggles at top of settings
+  const portSection = document.getElementById('settings-portfolios');
+  if(portSection) {
+    portSection.innerHTML = Object.entries(INV_PORTFOLIOS_DEF).map(([key,p])=>{
+      const enabled = portCfg[key] !== false;
+      return `<div class="set-row" style="padding-left:4px">
+        <div class="set-dot" style="background:${p.color}"></div>
+        <span class="set-row-label">${p.label}</span>
+        <label class="toggle-switch">
+          <input type="checkbox" ${enabled?'checked':''} onchange="togglePortfolio('${key}',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`;
+    }).join('');
+  }
+
   const body = document.getElementById('settings-body');
 
   const BUCKETS = [
@@ -611,6 +640,16 @@ function renderSettings() {
       ${rows}
     </div>`;
   }).join('');
+}
+
+function togglePortfolio(key, enabled) {
+  const cfg = loadPortConfig();
+  cfg[key] = enabled;
+  savePortConfig(cfg);
+  renderSettings();
+  // update sidebar visibility
+  const navEl = document.querySelector(`.nc[onclick*="goInv('${key}')"]`);
+  if(navEl) navEl.style.display = enabled ? '' : 'none';
 }
 
 function setBucket(cat, key, bucket, btn) {
@@ -873,12 +912,32 @@ function saveVal(section, cat, key, inp) {
 // INVESTMENTS v2 — per-portfolio with history
 // ══════════════════════════════════════════════
 
-const INV_PORTFOLIOS = {
+// ── PORTFOLIO VISIBILITY CONFIG ──
+const INV_PORT_KEY = 'inv_port_config';
+function loadPortConfig() {
+  try {
+    const s = localStorage.getItem(INV_PORT_KEY);
+    if(s) return JSON.parse(s);
+  } catch(e) {}
+  // default: all enabled
+  return Object.fromEntries(Object.keys(INV_PORTFOLIOS_DEF).map(k=>[k,true]));
+}
+function savePortConfig(cfg) { localStorage.setItem(INV_PORT_KEY, JSON.stringify(cfg)); }
+function isPortEnabled(key) { return loadPortConfig()[key] !== false; }
+
+// Dynamic INV_PORTFOLIOS — only enabled ones
+function getActivePortfolios() {
+  const cfg = loadPortConfig();
+  return Object.fromEntries(Object.entries(INV_PORTFOLIOS_DEF).filter(([k])=>cfg[k]!==false));
+}
+
+const INV_PORTFOLIOS_DEF = {
   xau_banka:   {label:'XAU - Banka',   unit:'g',  unitLabel:'gram', color:'#B8860B', priceLabel:'Cijena zlata (€/g)'},
   xau_revolut: {label:'XAU - Revolut', unit:'g',  unitLabel:'gram', color:'#C47A1E', priceLabel:'Cijena zlata (€/g)'},
   sp500:       {label:'S&P 500',       unit:'udj', unitLabel:'udjel', color:'#2A6BAD', priceLabel:'Cijena udjela (€/udj)'},
   xau_lovro:   {label:'XAU - Lovro',    unit:'g',   unitLabel:'gram',  color:'#2D9E6B', priceLabel:'Cijena zlata (€/g)'},
 };
+const INV_PORTFOLIOS = INV_PORTFOLIOS_DEF; // kept for compatibility — use getActivePortfolios() for dashboard
 
 function invLoad(key)  { try { return JSON.parse(localStorage.getItem('inv2_'+key)||'[]'); } catch(e){return[];} }
 function invSave(key,d){ localStorage.setItem('inv2_'+key, JSON.stringify(d)); }
@@ -1023,11 +1082,11 @@ function renderDash(){
   const actRashod   = bucketSum('actual','rashod');
   const actBal      = actPrihod - actRashod;
 
-  const totInv  = Object.keys(INV_PORTFOLIOS).reduce((s,key)=>{
+  const totInv  = Object.keys(getActivePortfolios()).reduce((s,key)=>{
     const d=invLoad(key); const cp=priceLoad(key);
     return s+d.reduce((a,i)=>a+i.qty,0)*cp;
   },0);
-  const totInvd = Object.keys(INV_PORTFOLIOS).reduce((s,key)=>{
+  const totInvd = Object.keys(getActivePortfolios()).reduce((s,key)=>{
     return s+invLoad(key).reduce((a,i)=>a+i.qty*i.price,0);
   },0);
   const invG = totInv-totInvd;
@@ -1071,7 +1130,7 @@ function renderDash(){
     </div>
     <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Investicije</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px">
-      ${Object.entries(INV_PORTFOLIOS).map(([key,p])=>{
+      ${Object.entries(getActivePortfolios()).map(([key,p])=>{
         const d = invLoad(key);
         const cp = priceLoad(key);
         const qty = d.reduce((s,i)=>s+i.qty,0);
@@ -1381,6 +1440,16 @@ async function initWithSync() {
 }
 
 // ── INIT ──
+// Hide disabled portfolios in sidebar
+(function() {
+  const cfg = loadPortConfig();
+  Object.keys(INV_PORTFOLIOS_DEF).forEach(key => {
+    if(cfg[key] === false) {
+      const navEl = document.querySelector(\`.nc[onclick*="goInv('${key}')"]\`);
+      if(navEl) navEl.style.display = 'none';
+    }
+  });
+})();
 initWithSync();
 </script>
 </body>
