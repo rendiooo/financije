@@ -751,14 +751,14 @@ function savePin() {
   const val = document.getElementById('pin-new').value;
   if(val.length !== 6) { document.getElementById('pin-set-msg').textContent = 'PIN mora imati točno 6 znamenki.'; return; }
   setPin(val);
-  sessionStorage.setItem(PIN_SESSION, '1');
+  localStorage.setItem(PIN_SESSION, Date.now().toString());
   document.getElementById('pin-new').value = '';
   document.getElementById('pin-set-msg').style.color = 'var(--green)';
   document.getElementById('pin-set-msg').textContent = '✓ PIN je postavljen.';
 }
 function removePin() {
   localStorage.removeItem(PIN_KEY);
-  sessionStorage.removeItem(PIN_SESSION);
+  localStorage.removeItem(PIN_SESSION);
   document.getElementById('pin-set-msg').style.color = 'var(--amber)';
   document.getElementById('pin-set-msg').textContent = 'PIN je uklonjen — aplikacija se otvara bez lozinke.';
 }
@@ -1475,7 +1475,7 @@ function refreshCurrentPage(){
 // PIN LOCK
 // ══════════════════════════════════════════════
 const PIN_KEY = 'app_pin';
-const PIN_SESSION = 'pin_unlocked';
+const PIN_SESSION = 'pin_unlocked_ts';
 let pinBuffer = '';
 
 function getPin()    { return localStorage.getItem(PIN_KEY) || '250425'; }
@@ -1511,7 +1511,7 @@ function checkPin() {
     return;
   }
   if(pinBuffer === saved) {
-    sessionStorage.setItem(PIN_SESSION, '1');
+    localStorage.setItem(PIN_SESSION, Date.now().toString());
     unlockApp();
   } else {
     document.getElementById('pin-error').textContent = 'Pogrešan PIN, pokušajte ponovo';
@@ -1525,6 +1525,7 @@ function checkPin() {
 }
 
 function unlockApp() {
+  localStorage.setItem(PIN_SESSION, Date.now().toString());
   const screen = document.getElementById('pin-screen');
   screen.classList.add('hidden');
   setTimeout(()=>screen.style.display='none', 300);
@@ -1534,7 +1535,7 @@ function pinForgot() {
   const r = prompt('Unesite master lozinku za resetiranje PIN-a:', '');
   if(r === 'financije2025') {
     localStorage.removeItem(PIN_KEY);
-    sessionStorage.removeItem(PIN_SESSION);
+    localStorage.removeItem(PIN_SESSION);
     alert('PIN je resetiran. Otvorite aplikaciju ponovo i postavite novi PIN u Postavkama.');
   } else if(r !== null) {
     alert('Pogrešna lozinka.');
@@ -1548,8 +1549,10 @@ function checkPinOnLoad() {
     unlockApp();
     return;
   }
-  if(sessionStorage.getItem(PIN_SESSION) === '1') {
-    // Already unlocked this session
+  const unlockedAt = parseInt(localStorage.getItem(PIN_SESSION) || '0');
+  const thirtyMin = 30 * 60 * 1000;
+  if(Date.now() - unlockedAt < thirtyMin) {
+    // Unlocked within last 30 minutes
     unlockApp();
     return;
   }
@@ -1659,17 +1662,10 @@ async function syncNow() {
 async function initWithSync() {
   setSyncStatus('syncing', 'Učitavanje podataka...');
   const loaded = await pullFromCloud();
-  if(loaded) {
-    // Reinitialize DB from freshly populated localStorage
-    CATS.forEach(cat => {
-      SUBCATS[cat].forEach(sub => {
-        // Clear any cached values — getDB reads localStorage directly so no cache needed
-      });
-    });
-    DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
-    bucketCfg = loadBucketConfig();
-  }
-  typeof buildHeaderPeriodPicker === 'function' ? buildHeaderPeriodPicker() : null;
+  // Always reload from localStorage (whether from cloud or local)
+  DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
+  bucketCfg = loadBucketConfig();
+  if(typeof buildHeaderPeriodPicker === 'function') buildHeaderPeriodPicker();
   renderDash();
 }
 
@@ -1686,6 +1682,21 @@ async function initWithSync() {
 })();
 checkPinOnLoad();
 initWithSync();
+// Auto-refresh from cloud every 60 seconds
+setInterval(async () => {
+  const loaded = await pullFromCloud();
+  if(loaded) {
+    DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
+    bucketCfg = loadBucketConfig();
+    // Refresh current visible page
+    const activePage = document.querySelector('.page.active');
+    if(activePage) {
+      const id = activePage.id.replace('page-','');
+      if(id === 'dashboard') renderDash();
+      else if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
+    }
+  }
+}, 60000);
 </script>
 </body>
 </html>
