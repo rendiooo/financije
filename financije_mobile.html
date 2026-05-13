@@ -322,7 +322,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <div class="pin-forgot" onclick="pinForgot()">Zaboravili ste PIN?</div>
 </div>
 
-<div class="layout">
+<div class="layout" id="app-layout" style="display:none">
 
 <!-- ════════════════ HEADER + DRAWER ════════════════ -->
 <header class="sb">
@@ -1527,7 +1527,9 @@ function checkPin() {
 function unlockApp() {
   localStorage.setItem(PIN_SESSION, Date.now().toString());
   const screen = document.getElementById('pin-screen');
+  const layout = document.getElementById('app-layout');
   screen.classList.add('hidden');
+  if(layout) layout.style.display = '';
   setTimeout(()=>screen.style.display='none', 300);
 }
 
@@ -1545,18 +1547,16 @@ function pinForgot() {
 function checkPinOnLoad() {
   const pin = getPin();
   if(!pin) {
-    // No PIN set — skip lock screen
     unlockApp();
     return;
   }
   const unlockedAt = parseInt(localStorage.getItem(PIN_SESSION) || '0');
   const thirtyMin = 30 * 60 * 1000;
   if(Date.now() - unlockedAt < thirtyMin) {
-    // Unlocked within last 30 minutes
     unlockApp();
     return;
   }
-  // Show lock screen (already visible by default)
+  // PIN required — screen stays visible, app hidden
 }
 
 // ══════════════════════════════════════════════
