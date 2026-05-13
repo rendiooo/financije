@@ -1174,25 +1174,45 @@ function renderDash(){
   const actZaj  = bucketSum('actual','zajednicki');
   const zajBal  = planZaj - actZaj;
   const pocetno = loadPocetnoStanje();
-  // Uplata na zajednički račun puni račun
-  const uplataP = getDB('planned','zajednicki','zajednicki_uplata');
-  const uplataA = getDB('actual','zajednicki','zajednicki_uplata');
-  // Zajednički troškovi = SVE iz zajednički bucketa (uključujući i druge kategorije označene kao zajednički)
-  const sviZajTroskoviPlan = ALL_CATS.reduce((t,cat)=>t+SUBCATS[cat].reduce((s,sub)=>{
-    if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata'))
-      return s+getDB('planned',cat,sub.key);
-    return s;
-  },0),0);
-  const sviZajTroskoviAct = ALL_CATS.reduce((t,cat)=>t+SUBCATS[cat].reduce((s,sub)=>{
-    if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata'))
-      return s+getDB('actual',cat,sub.key);
-    return s;
-  },0),0);
-  const zajTroskoviPlan = sviZajTroskoviPlan;
-  const zajTroskoviAct  = sviZajTroskoviAct;
-  // Stanje = početno + uplata − svi zajednički troškovi
-  const planStanje = pocetno + uplataP - zajTroskoviPlan;
-  const actStanje  = pocetno + uplataA  - zajTroskoviAct;
+
+  // Cumulative stanje: početno stanje + sum(uplata - troškovi) for months 1..selMonth
+  // For each month: stanje(M) = stanje(M-1) + uplata(M) - troškovi(M)
+  function getZajForMonth(section, year, month) {
+    const mk = String(month).padStart(2,'0');
+    const pfx = section==='planned' ? 'fp' : 'fa';
+    const uplataKey = pfx + '_zajednicki_zajednicki_uplata_' + year + '-' + mk;
+    const uplataRaw = parseFloat(localStorage.getItem(uplataKey)||'0')||0;
+    const uplataDefault = getDefault(section,'zajednicki','zajednicki_uplata');
+    const uplata = uplataRaw || uplataDefault;
+    let troskovi = 0;
+    ALL_CATS.forEach(cat => {
+      SUBCATS[cat].forEach(sub => {
+        if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata')) {
+          const k = pfx + '_' + cat + '_' + sub.key + '_' + year + '-' + mk;
+          const raw = parseFloat(localStorage.getItem(k)||'0')||0;
+          const def = getDefault(section,cat,sub.key);
+          troskovi += raw || def;
+        }
+      });
+    });
+    return {uplata, troskovi};
+  }
+
+  // Calculate cumulative stanje up to selMonth
+  let planStanje = pocetno, actStanje = pocetno;
+  const currentYear = testMode ? selYear : selYear;
+  const currentMonth = testMode ? 12 : selMonth; // in test mode show full year
+  for(let m=1; m<=currentMonth; m++) {
+    const p = getZajForMonth('planned', currentYear, m);
+    const a = getZajForMonth('actual',  currentYear, m);
+    planStanje += p.uplata - p.troskovi;
+    actStanje  += a.uplata - a.troskovi;
+  }
+  // For dashboard cards, show current month contribution
+  const uplataP = getZajForMonth('planned', currentYear, selMonth).uplata;
+  const uplataA = getZajForMonth('actual',  currentYear, selMonth).uplata;
+  const zajTroskoviPlan = getZajForMonth('planned', currentYear, selMonth).troskovi;
+  const zajTroskoviAct  = getZajForMonth('actual',  currentYear, selMonth).troskovi;
 
   document.getElementById('dash-flow').innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px">
@@ -1319,41 +1339,15 @@ function renderDash(){
   const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
   const pocetnoStanje = loadPocetnoStanje();
 
-  function calcStanjeForMonth(section, year, month) {
-    const mk = String(month).padStart(2,'0');
-    const pfx = section==='planned' ? 'fp' : 'fa';
 
-    const uKey = 'fa_zajednicki_zajednicki_uplata_' + year + '-' + mk;
-    const uplataRaw = parseFloat(localStorage.getItem(uKey)||'0')||0;
-    const uplataDefault = getDefault('actual','zajednicki','zajednicki_uplata');
-    const uplata = uplataRaw || uplataDefault;
-
-    let troskovi = 0;
-    ALL_CATS.forEach(cat => {
-      SUBCATS[cat].forEach(sub => {
-        if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata')) {
-          const k = pfx + '_' + cat + '_' + sub.key + '_' + year + '-' + mk;
-          const raw = parseFloat(localStorage.getItem(k)||'0')||0;
-          const def = getDefault(section, cat, sub.key);
-          troskovi += raw || def;
-        }
-      });
-    });
-    return {uplata, troskovi};
-  }
 
   // Build cumulative planned and actual stanje for all 12 months
   const planLine = [], actLine = [];
   let cumPlan = pocetnoStanje, cumAct = pocetnoStanje;
   for(let m=1; m<=12; m++){
-    const pData = calcStanjeForMonth('planned', zajYear, m);
-    const aData = calcStanjeForMonth('actual',  zajYear, m);
-    // planned uplata from planned section
-    const planUplata = (()=>{
-      const pfx='fp'; const cat='zajednicki'; const sub='zajednicki_uplata';
-      return parseFloat(localStorage.getItem(`${pfx}_${cat}_${sub}_${zajYear}-${String(m).padStart(2,'0')}`)||'0')||0;
-    })();
-    cumPlan += planUplata - pData.troskovi;
+    const pData = getZajForMonth('planned', zajYear, m);
+    const aData = getZajForMonth('actual',  zajYear, m);
+    cumPlan += pData.uplata - pData.troskovi;
     cumAct  += aData.uplata - aData.troskovi;
     planLine.push(Math.round(cumPlan*100)/100);
     actLine.push(Math.round(cumAct*100)/100);
@@ -1508,13 +1502,20 @@ async function pullFromCloud() {
     });
     clearTimeout(timer);
     const text = await res.text();
+    console.log('[PULL] CSV length:', text.length, 'starts:', text.slice(0,50));
     // Parse Google Sheets CSV — wraps JSON in "" and escapes inner quotes as ""
     let raw = text.trim();
     if(raw.startsWith('"') && raw.endsWith('"')) {
       raw = raw.slice(1, -1).replace(/""/g, '"');
     }
     // Also handle escaped backslashes from nested JSON
-    const data = JSON.parse(raw);
+    let data;
+    try { data = JSON.parse(raw); } catch(pe) {
+      console.error('[PULL] JSON parse error:', pe.message, 'raw[:100]:', raw.slice(0,100));
+      setSyncStatus('err', 'Parse error: ' + pe.message.slice(0,40));
+      return false;
+    }
+    console.log('[PULL] parsed keys:', Object.keys(data).length);
     if(data && typeof data === 'object' && Object.keys(data).length > 0) {
       const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
       Object.keys(localStorage)
@@ -1589,16 +1590,46 @@ async function pullAndRender() {
 }
 
 // ── INIT — after PIN ──────────────────────────
+function initApp() {
+  // Hide disabled portfolios in sidebar
+  const cfg2 = loadPortConfig();
+  Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
+    if(cfg2[key] === false) {
+      document.querySelectorAll('.nc').forEach(function(el) {
+        if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
+          el.style.display = 'none';
+      });
+    }
+  });
+  initWithSync();
+}
+
 async function initWithSync() {
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
-  // Wait one frame so layout is visible before Chart.js tries to render
-  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
-  // Pull from cloud
+  // Pull data from cloud
   const ok = await pullFromCloud();
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
-  // Render after layout is definitely visible
+  // Wait until layout is actually visible and has dimensions
+  await waitForLayout();
   try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
+}
+
+function waitForLayout() {
+  return new Promise(resolve => {
+    const layout = document.getElementById('app-layout');
+    if(!layout) { resolve(); return; }
+    // Check if already visible with dimensions
+    function check() {
+      if(layout.offsetWidth > 0 && layout.style.display !== 'none') {
+        // Extra frame for Chart.js canvas sizing
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      } else {
+        setTimeout(check, 50);
+      }
+    }
+    check();
+  });
 }
 
 // ── INIT ─────────────────────────────────────
