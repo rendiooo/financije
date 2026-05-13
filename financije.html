@@ -24,7 +24,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .layout{display:flex;min-height:100vh}
 
 /* ── SIDEBAR ── */
-.sb{width:var(--sw);background:var(--accent);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto}
+.sb{width:var(--sw);background:var(--accent);color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto}
 .sb-logo{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1)}
 .sb-logo h1{font-family:'DM Serif Display',serif;font-size:19px;font-weight:400;color:#fff}
 .sb-logo p{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;letter-spacing:.8px;text-transform:uppercase}
@@ -1408,6 +1408,14 @@ function renderDash(){
 const PIN_KEY = 'app_pin';
 const PIN_SESSION = 'pin_unlocked_ts'; // localStorage timestamp
 let pinBuffer = '';
+
+// Keyboard support for PIN
+document.addEventListener('keydown', function(e) {
+  const screen = document.getElementById('pin-screen');
+  if(!screen || screen.style.display === 'none' || screen.classList.contains('hidden')) return;
+  if(e.key >= '0' && e.key <= '9') { pinPress(e.key); }
+  else if(e.key === 'Backspace') { pinDel(); }
+});
 
 function getPin()    { return localStorage.getItem(PIN_KEY) || '250425'; }
 function setPin(p)   { localStorage.setItem(PIN_KEY, p); }

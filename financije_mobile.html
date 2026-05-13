@@ -33,7 +33,7 @@ html,body{height:100%;overflow:hidden}
 /* Top header bar */
 .sb{background:var(--accent);color:#fff;position:fixed;top:0;left:0;right:0;z-index:200;
     height:56px;display:flex;align-items:center;padding:0 16px;
-    padding-top:env(safe-area-inset-top)}
+    padding-top:env(safe-area-inset-top);z-index:50}
 .sb-logo{display:flex;align-items:center;gap:10px;flex:1}
 .sb-logo h1{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;color:#fff}
 .sb-logo p{display:none}
@@ -1477,6 +1477,14 @@ function refreshCurrentPage(){
 const PIN_KEY = 'app_pin';
 const PIN_SESSION = 'pin_unlocked_ts'; // localStorage timestamp
 let pinBuffer = '';
+
+// Keyboard support for PIN
+document.addEventListener('keydown', function(e) {
+  const screen = document.getElementById('pin-screen');
+  if(!screen || screen.style.display === 'none' || screen.classList.contains('hidden')) return;
+  if(e.key >= '0' && e.key <= '9') { pinPress(e.key); }
+  else if(e.key === 'Backspace') { pinDel(); }
+});
 
 function getPin()    { return localStorage.getItem(PIN_KEY) || '250425'; }
 function setPin(p)   { localStorage.setItem(PIN_KEY, p); }
