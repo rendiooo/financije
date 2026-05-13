@@ -1595,7 +1595,7 @@ function initApp() {
   const cfg2 = loadPortConfig();
   Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
     if(cfg2[key] === false) {
-      const sel = '.nc[onclick*="goInv('' + key + '')"]';
+      const sel = ".nc[onclick*=\"goInv('\" + key + \"')\"]";
       const navEl = document.querySelector(sel);
       if(navEl) navEl.style.display = 'none';
     }
