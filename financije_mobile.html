@@ -907,7 +907,7 @@ function goPage(id, el){
   clearActive(); el.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  if(id==='dashboard')   { pullAndRender(); return; }
+  if(id==='dashboard')   { renderDash(); pullAndRender(); return; }
   if(id==='investments') { renderInvPortfolio(); pullAndRender(); return; }
   if(id==='settings')    renderSettings();
   closeDrawer();
@@ -1555,10 +1555,11 @@ document.addEventListener('keydown', function(e) {
 
 // ══════════════════════════════════════════════
 // GOOGLE SHEETS SYNC
-// Pull: on PIN, on tab/category open
-// Push: only on manual Save button
+// Pull: via public CSV URL (no CORS issues)
+// Push: via Apps Script no-cors POST
 // ══════════════════════════════════════════════
-const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxPsV2UqKQ0DMm67GTHc3Ejd7jJURTz_Qh02MX893VtgViBa_JoJA2nBZEXLiuC4Tdt/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxPsV2UqKQ0DMm67GTHc3Ejd7jJURTz_Qh02MX893VtgViBa_JoJA2nBZEXLiuC4Tdt/exec';
+const CSV_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTEpqITGYSozaW2yqnVitsNFZ-bnAxVIBYw_oKTaWDySyUsUmpI04ysxmEfSO2jkOopM-Txt9srDB06/pub?output=csv';
 let isSyncing = false;
 
 function setSyncStatus(state, msg) {
@@ -1569,50 +1570,46 @@ function setSyncStatus(state, msg) {
   txt.textContent = msg;
 }
 
-// ── PULL via JSONP ────────────────────────────
-function pullFromCloud() {
-  return new Promise((resolve) => {
-    setSyncStatus('syncing', 'Učitavanje...');
-    const cbName = 'gcb_' + Date.now();
-    const script  = document.createElement('script');
-    let done = false;
-
-    const timer = setTimeout(() => {
-      if(done) return; done=true;
-      delete window[cbName]; script.remove();
-      setSyncStatus('err', 'Nema veze');
-      resolve(false);
-    }, 8000);
-
-    window[cbName] = function(json) {
-      if(done) return; done=true;
-      clearTimeout(timer); delete window[cbName]; script.remove();
-      if(json&&json.status==='ok'&&json.data&&Object.keys(json.data).length>0) {
-        const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
-        Object.keys(localStorage)
-          .filter(k=>pfx.some(p=>k.startsWith(p)))
-          .forEach(k=>localStorage.removeItem(k));
-        Object.entries(json.data).forEach(([k,v])=>localStorage.setItem(k,v));
-        const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
-        setSyncStatus('ok', 'Učitano u ' + t);
-        resolve(true);
-      } else {
-        setSyncStatus('ok', 'Nema podataka u oblaku');
-        resolve(false);
-      }
-    };
-    script.onerror = () => {
-      if(done) return; done=true;
-      clearTimeout(timer); delete window[cbName];
-      setSyncStatus('err', 'Nema veze');
-      resolve(false);
-    };
-    script.src = SYNC_URL + '?action=read&callback=' + cbName + '&ts=' + Date.now();
-    document.head.appendChild(script);
-  });
+// ── PULL via public CSV ───────────────────────
+async function pullFromCloud() {
+  setSyncStatus('syncing', 'Učitavanje...');
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(CSV_URL + '&t=' + Date.now(), {
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    const text = await res.text();
+    // CSV has one cell: A1 contains the JSON string
+    // Strip any CSV quoting (Google wraps in "" if content has commas)
+    let json = text.trim();
+    if(json.startsWith('"') && json.endsWith('"')) {
+      json = json.slice(1,-1).replace(/""/g,'"');
+    }
+    const data = JSON.parse(json);
+    if(data && typeof data === 'object' && Object.keys(data).length > 0) {
+      const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
+      Object.keys(localStorage)
+        .filter(k=>pfx.some(p=>k.startsWith(p)))
+        .forEach(k=>localStorage.removeItem(k));
+      Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,v));
+      const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
+      setSyncStatus('ok', 'Učitano u ' + t);
+      return true;
+    } else {
+      setSyncStatus('ok', 'Nema podataka');
+      return false;
+    }
+  } catch(e) {
+    console.warn('Pull error:', e);
+    setSyncStatus('err', 'Nema veze');
+    return false;
+  }
 }
 
-// ── PUSH — only on manual Save ────────────────
+// ── PUSH via Apps Script no-cors ─────────────
 async function pushToCloud() {
   if(isSyncing) return;
   isSyncing = true;
@@ -1624,8 +1621,9 @@ async function pushToCloud() {
       const k = localStorage.key(i);
       if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
     }
-    await fetch(SYNC_URL, {
+    await fetch(SCRIPT_URL, {
       method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
       body: JSON.stringify({action:'write', data}),
       mode: 'no-cors',
     });
@@ -1643,20 +1641,7 @@ async function syncNow() {
   await pushToCloud();
 }
 
-// ── NO auto-save on every keystroke ───────────
-// save() only saves to localStorage, no push
-// _origSave is the original localStorage save
-
-// ── PULL + RENDER helper ──────────────────────
-async function pullAndRender() {
-  const ok = await pullFromCloud();
-  if(ok) {
-    DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
-    bucketCfg = loadBucketConfig();
-    reloadAndRender();
-  }
-}
-
+// ── PULL + RENDER ─────────────────────────────
 function reloadAndRender() {
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
@@ -1668,21 +1653,29 @@ function reloadAndRender() {
   else if(id==='investments') renderInvPortfolio();
 }
 
-// ── INIT — pull after PIN unlock ──────────────
-async function initWithSync() {
-  if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
-  // Render from local first so dashboard isn't blank
-  DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
-  bucketCfg = loadBucketConfig();
-  try { renderDash(); } catch(e) { console.warn('renderDash local:', e); }
-  // Then pull from cloud
-  setSyncStatus('syncing', 'Učitavanje...');
+async function pullAndRender() {
   const ok = await pullFromCloud();
   if(ok) {
     DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
     bucketCfg = loadBucketConfig();
+    reloadAndRender();
   }
-  try { renderDash(); } catch(e) { console.warn('renderDash cloud:', e); }
+}
+
+// ── INIT — after PIN ──────────────────────────
+async function initWithSync() {
+  if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
+  // Render from local immediately
+  DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
+  bucketCfg = loadBucketConfig();
+  try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
+  // Pull from cloud
+  const ok = await pullFromCloud();
+  if(ok) {
+    DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
+    bucketCfg = loadBucketConfig();
+    try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
+  }
 }
 
 // ── INIT ─────────────────────────────────────
