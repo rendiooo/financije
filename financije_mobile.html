@@ -768,9 +768,10 @@ function togglePortfolio(key, enabled) {
   cfg[key] = enabled;
   savePortConfig(cfg);
   renderSettings();
-  const sel = ".nc[onclick*=\"goInv('\" + key + \"')\"]";
-  const navEl = document.querySelector(sel);
-  if(navEl) navEl.style.display = enabled ? '' : 'none';
+  document.querySelectorAll('.nc').forEach(function(el) {
+    if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
+      el.style.display = enabled ? '' : 'none';
+  });
 }
 
 function setBucket(cat, key, bucket, btn) {
@@ -1622,7 +1623,10 @@ async function pushToCloud(retries=2) {
 async function pullFromCloud() {
   setSyncStatus('syncing', 'Učitavanje...');
   try {
-    const res = await fetch(SYNC_URL + '?action=read', {cache: 'no-store'});
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(SYNC_URL + '?action=read', {cache: 'no-store', signal: controller.signal});
+    clearTimeout(timeout);
     const json = await res.json();
     if(json.status !== 'ok' || !json.data || Object.keys(json.data).length === 0) {
       setSyncStatus('ok', 'Nema podataka u oblaku');
@@ -1663,9 +1667,10 @@ function initApp() {
   const cfg2 = loadPortConfig();
   Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
     if(cfg2[key] === false) {
-      const sel = ".nc[onclick*=\"goInv('\" + key + \"')\"]";
-      const navEl = document.querySelector(sel);
-      if(navEl) navEl.style.display = 'none';
+      document.querySelectorAll('.nc').forEach(function(el) {
+        if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
+          el.style.display = 'none';
+      });
     }
   });
   if(typeof buildHeaderPeriodPicker === 'function') buildHeaderPeriodPicker();
@@ -1687,13 +1692,25 @@ function initApp() {
 }
 
 async function initWithSync() {
-  setSyncStatus('syncing', 'Učitavanje podataka...');
-  const loaded = await pullFromCloud();
-  // Always reload from localStorage (whether from cloud or local)
+  // Render immediately from local data so app is never blank
   DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
   bucketCfg = loadBucketConfig();
   if(typeof buildHeaderPeriodPicker === 'function') buildHeaderPeriodPicker();
   renderDash();
+  // Then sync with cloud in background
+  setSyncStatus('syncing', 'Sinkronizacija...');
+  const loaded = await pullFromCloud();
+  if(loaded) {
+    DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
+    bucketCfg = loadBucketConfig();
+    renderDash();
+    // Also refresh cat page if open
+    const activePage = document.querySelector('.page.active');
+    if(activePage && activePage.id !== 'page-dashboard') {
+      const id = activePage.id.replace('page-','');
+      if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
+    }
+  }
 }
 
 // ── INIT ──
