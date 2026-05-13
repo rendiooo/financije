@@ -717,8 +717,7 @@ function savePin() {
 }
 function removePin() {
   localStorage.removeItem(PIN_KEY);
-  localStorage.removeItem(PIN_SESSION);
-  document.getElementById('pin-set-msg').style.color = 'var(--amber)';
+    document.getElementById('pin-set-msg').style.color = 'var(--amber)';
   document.getElementById('pin-set-msg').textContent = 'PIN je uklonjen — aplikacija se otvara bez lozinke.';
 }
 
@@ -1407,27 +1406,16 @@ function renderDash(){
 // PIN LOCK
 // ══════════════════════════════════════════════
 const PIN_KEY = 'app_pin';
-const PIN_SESSION = 'pin_unlocked_ts'; // localStorage timestamp
 let pinBuffer = '';
 
-// Keyboard support for PIN
-document.addEventListener('keydown', function(e) {
-  const screen = document.getElementById('pin-screen');
-  if(!screen || screen.style.display === 'none' || screen.classList.contains('hidden')) return;
-  if(e.key >= '0' && e.key <= '9') { pinPress(e.key); }
-  else if(e.key === 'Backspace') { pinDel(); }
-});
-
-function getPin()    { return localStorage.getItem(PIN_KEY) || '250425'; }
-function setPin(p)   { localStorage.setItem(PIN_KEY, p); }
+function getPin() { return localStorage.getItem(PIN_KEY) || '250425'; }
+function setPin(p) { localStorage.setItem(PIN_KEY, p); }
 
 function pinPress(d) {
   if(pinBuffer.length >= 6) return;
   pinBuffer += d;
   updatePinDots();
-  if(pinBuffer.length === 6) {
-    setTimeout(checkPin, 150);
-  }
+  if(pinBuffer.length === 6) setTimeout(checkPin, 150);
 }
 
 function pinDel() {
@@ -1437,66 +1425,52 @@ function pinDel() {
 }
 
 function updatePinDots() {
-  for(let i=0;i<6;i++) {
-    const dot = document.getElementById('pd'+i);
+  for(var i=0;i<6;i++) {
+    var dot = document.getElementById('pd'+i);
     if(dot) dot.classList.toggle('filled', i < pinBuffer.length);
   }
 }
 
 function checkPin() {
-  const saved = getPin();
-  if(!saved) {
-    // No PIN set — unlock directly
-    unlockApp();
-    return;
-  }
+  var saved = getPin();
   if(pinBuffer === saved) {
-    sessionStorage.setItem('pin_ok', '1');
+    sessionStorage.setItem('pin_ok','1');
     unlockApp();
   } else {
-    document.getElementById('pin-error').textContent = 'Pogrešan PIN, pokušajte ponovo';
+    document.getElementById('pin-error').textContent = 'Pogresan PIN, pokusajte ponovo';
     pinBuffer = '';
     updatePinDots();
-    // Shake animation
-    const screen = document.getElementById('pin-screen');
-    screen.style.animation = 'shake .3s ease';
-    setTimeout(()=>screen.style.animation='', 300);
+    var screen = document.getElementById('pin-screen');
+    if(screen) { screen.style.animation='shake .3s ease'; setTimeout(function(){screen.style.animation='';},300); }
   }
 }
 
 function unlockApp() {
-  sessionStorage.setItem('pin_ok', '1');
-  const screen = document.getElementById('pin-screen');
-  const layout = document.getElementById('app-layout');
-  screen.classList.add('hidden');
+  sessionStorage.setItem('pin_ok','1');
+  var screen = document.getElementById('pin-screen');
+  var layout = document.getElementById('app-layout');
+  if(screen) { screen.classList.add('hidden'); setTimeout(function(){screen.style.display='none';},300); }
   if(layout) layout.style.display = '';
-  setTimeout(()=>screen.style.display='none', 300);
-  // Init app only after PIN
-  if(!window._appInited) {
-    window._appInited = true;
-    initApp();
-  }
+  if(!window._appInited) { window._appInited=true; initApp(); }
 }
 
 function pinForgot() {
-  const r = prompt('Unesite master lozinku za resetiranje PIN-a:', '');
-  if(r === 'financije2025') {
-    localStorage.removeItem(PIN_KEY);
-    localStorage.removeItem(PIN_SESSION);
-    alert('PIN je resetiran. Otvorite aplikaciju ponovo i postavite novi PIN u Postavkama.');
-  } else if(r !== null) {
-    alert('Pogrešna lozinka.');
-  }
+  var r = prompt('Unesite master lozinku:','');
+  if(r==='financije2025') { localStorage.removeItem(PIN_KEY); sessionStorage.removeItem('pin_ok'); alert('PIN resetiran.'); }
+  else if(r!==null) alert('Pogresna lozinka.');
 }
 
 function checkPinOnLoad() {
-  const pin = getPin();
-  // No PIN configured — go straight in
-  if(!pin) { unlockApp(); return; }
-  // Already unlocked in this browser tab
-  if(sessionStorage.getItem('pin_ok') === '1') { unlockApp(); return; }
-  // Otherwise — PIN screen stays, app stays hidden
+  if(!getPin()) { unlockApp(); return; }
+  if(sessionStorage.getItem('pin_ok')==='1') { unlockApp(); return; }
 }
+
+document.addEventListener('keydown', function(e) {
+  var screen = document.getElementById('pin-screen');
+  if(!screen || screen.style.display==='none' || screen.classList.contains('hidden')) return;
+  if(e.key>='0'&&e.key<='9') pinPress(e.key);
+  else if(e.key==='Backspace') pinDel();
+});
 
 // ══════════════════════════════════════════════
 // GOOGLE SHEETS SYNC
@@ -1520,9 +1494,7 @@ async function pushToCloud(retries=2) {
   setSyncStatus('syncing', 'Spremanje...');
   try {
     // Collect all localStorage keys belonging to this app
-    const ts = Date.now();
-    localStorage.setItem('_sync_ts', ts);
-    const data = {'_sync_ts': String(ts)};
+    const data = {};
     for(let i=0; i<localStorage.length; i++) {
       const k = localStorage.key(i);
       if(k.startsWith('fp_')||k.startsWith('fa_')||k.startsWith('finv')||
@@ -1555,16 +1527,15 @@ async function pullFromCloud() {
   setSyncStatus('syncing', 'Učitavanje...');
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-    const res = await fetch(SYNC_URL + '?action=read', {cache: 'no-store', signal: controller.signal});
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(SYNC_URL + '?action=read&ts=' + Date.now(), {cache: 'no-store', signal: controller.signal});
     clearTimeout(timeout);
     const json = await res.json();
     if(json.status !== 'ok' || !json.data || Object.keys(json.data).length === 0) {
       setSyncStatus('ok', 'Nema podataka u oblaku');
       return false;
     }
-
-    // Always apply cloud data (cloud is master)
+    // Cloud is always master — overwrite local
     const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','_sync_ts'];
     Object.keys(localStorage)
       .filter(k => appPrefixes.some(p => k.startsWith(p)))
@@ -1574,7 +1545,7 @@ async function pullFromCloud() {
     setSyncStatus('ok', 'Sinkronizirano u ' + time);
     return true;
   } catch(e) {
-    setSyncStatus('err', 'Nema veze — koristim lokalne podatke');
+    setSyncStatus('err', 'Nema veze — lokalni podaci');
     return false;
   }
 }
@@ -1623,19 +1594,20 @@ function initApp() {
 }
 
 async function initWithSync() {
-  // Render immediately from local data so app is never blank
+  // Show loading state
+  setSyncStatus('syncing', 'Učitavam podatke...');
+  // First render from local so screen isn't blank while waiting
   DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
   bucketCfg = loadBucketConfig();
   if(typeof buildHeaderPeriodPicker === 'function') buildHeaderPeriodPicker();
   renderDash();
-  // Then sync with cloud in background
-  setSyncStatus('syncing', 'Sinkronizacija...');
+  // Pull from cloud (cloud always wins)
   const loaded = await pullFromCloud();
   if(loaded) {
+    // Re-render with fresh cloud data
     DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
     bucketCfg = loadBucketConfig();
     renderDash();
-    // Also refresh cat page if open
     const activePage = document.querySelector('.page.active');
     if(activePage && activePage.id !== 'page-dashboard') {
       const id = activePage.id.replace('page-','');
