@@ -1508,13 +1508,13 @@ async function pullFromCloud() {
     });
     clearTimeout(timer);
     const text = await res.text();
-    // CSV has one cell: A1 contains the JSON string
-    // Strip any CSV quoting (Google wraps in "" if content has commas)
-    let json = text.trim();
-    if(json.startsWith('"') && json.endsWith('"')) {
-      json = json.slice(1,-1).replace(/""/g,'"');
+    // Parse Google Sheets CSV — wraps JSON in "" and escapes inner quotes as ""
+    let raw = text.trim();
+    if(raw.startsWith('"') && raw.endsWith('"')) {
+      raw = raw.slice(1, -1).replace(/""/g, '"');
     }
-    const data = JSON.parse(json);
+    // Also handle escaped backslashes from nested JSON
+    const data = JSON.parse(raw);
     if(data && typeof data === 'object' && Object.keys(data).length > 0) {
       const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
       Object.keys(localStorage)
@@ -1529,8 +1529,8 @@ async function pullFromCloud() {
       return false;
     }
   } catch(e) {
-    console.warn('Pull error:', e);
-    setSyncStatus('err', 'Nema veze');
+    console.warn('Pull error:', e.message || e);
+    setSyncStatus('err', 'Greška: ' + (e.message||'').slice(0,30));
     return false;
   }
 }
@@ -1591,15 +1591,13 @@ async function pullAndRender() {
 // ── INIT — after PIN ──────────────────────────
 async function initWithSync() {
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
-  // Show loading state in dash-flow while pulling
-  const flowEl = document.getElementById('dash-flow');
-  if(flowEl) flowEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">⏳ Učitavanje podataka...</div>';
-  // Pull from cloud FIRST
+  // Wait one frame so layout is visible before Chart.js tries to render
+  await new Promise(r => requestAnimationFrame(() => setTimeout(r, 50)));
+  // Pull from cloud
   const ok = await pullFromCloud();
-  // Load data into DB
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
-  // Now render with fresh data
+  // Render after layout is definitely visible
   try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
 }
 
