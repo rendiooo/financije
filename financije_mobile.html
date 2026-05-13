@@ -1546,162 +1546,145 @@ document.addEventListener('keydown', function(e) {
 // ══════════════════════════════════════════════
 const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxPsV2UqKQ0DMm67GTHc3Ejd7jJURTz_Qh02MX893VtgViBa_JoJA2nBZEXLiuC4Tdt/exec';
 let syncTimeout = null;
-let lastSyncTime = null;
-let isSyncing = false;
+let isSyncing   = false;
 
 function setSyncStatus(state, msg) {
   const dot = document.getElementById('sync-dot');
   const txt = document.getElementById('sync-status');
-  if(!dot || !txt) return;
+  if(!dot||!txt) return;
   dot.className = 'sync-dot ' + state;
   txt.textContent = msg;
 }
 
-async function pushToCloud(retries=2) {
+// ── PULL via JSONP (no CORS) ──────────────────
+function pullFromCloud() {
+  return new Promise((resolve) => {
+    setSyncStatus('syncing', 'Učitavanje...');
+    const cbName = 'gcb_' + Date.now();
+    const script  = document.createElement('script');
+    let done = false;
+
+    const timer = setTimeout(() => {
+      if(done) return; done=true;
+      delete window[cbName]; script.remove();
+      setSyncStatus('err', 'Nema veze');
+      resolve(false);
+    }, 8000);
+
+    window[cbName] = function(json) {
+      if(done) return; done=true;
+      clearTimeout(timer); delete window[cbName]; script.remove();
+      if(json&&json.status==='ok'&&json.data&&Object.keys(json.data).length>0) {
+        const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
+        Object.keys(localStorage)
+          .filter(k=>pfx.some(p=>k.startsWith(p)))
+          .forEach(k=>localStorage.removeItem(k));
+        Object.entries(json.data).forEach(([k,v])=>localStorage.setItem(k,v));
+        const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
+        setSyncStatus('ok', 'Sinkronizirano u ' + t);
+        resolve(true);
+      } else {
+        setSyncStatus('ok', 'Lokalni podaci');
+        resolve(false);
+      }
+    };
+    script.onerror = () => {
+      if(done) return; done=true;
+      clearTimeout(timer); delete window[cbName];
+      setSyncStatus('err', 'Nema veze');
+      resolve(false);
+    };
+    script.src = SYNC_URL + '?action=read&callback=' + cbName + '&ts=' + Date.now();
+    document.head.appendChild(script);
+  });
+}
+
+// ── PUSH then PULL ────────────────────────────
+async function pushAndPull() {
   if(isSyncing) return;
   isSyncing = true;
   setSyncStatus('syncing', 'Spremanje...');
   try {
-    // Collect all localStorage keys belonging to this app
     const data = {};
-    for(let i=0; i<localStorage.length; i++) {
+    const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
+    for(let i=0;i<localStorage.length;i++) {
       const k = localStorage.key(i);
-      if(k.startsWith('fp_')||k.startsWith('fa_')||k.startsWith('finv')||
-         k.startsWith('inv2_')||k.startsWith('invprice_')||
-         k.startsWith('bucket_')||k.startsWith('rashod_')||
-         k.startsWith('pocetno_')) {
-        data[k] = localStorage.getItem(k);
-      }
+      if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
     }
-    const res = await fetch(SYNC_URL, {
-      method:'POST',
+    await fetch(SYNC_URL, {
+      method: 'POST',
       body: JSON.stringify({action:'write', data}),
-      redirect: 'follow',
       mode: 'no-cors',
     });
-    // no-cors — assume success
-    lastSyncTime = new Date();
-    setSyncStatus('ok', 'Sinkronizirano ' + lastSyncTime.toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'}));
+    const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('ok', 'Spremljeno u ' + t);
   } catch(e) {
-    if(retries > 0) { isSyncing=false; setTimeout(()=>pushToCloud(retries-1), 2000); return; }
-    setSyncStatus('err', 'Nema veze — podaci lokalno sačuvani');
+    setSyncStatus('err', 'Push nije uspio');
   } finally {
     isSyncing = false;
   }
+  // Pull after push (small delay for cloud to process)
+  await new Promise(r=>setTimeout(r, 800));
+  const ok = await pullFromCloud();
+  if(ok) reloadAndRender();
 }
 
-async function pullFromCloud() {
-  setSyncStatus('syncing', 'Učitavanje...');
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-    const res = await fetch(SYNC_URL + '?action=read&ts=' + Date.now(), {cache: 'no-store', signal: controller.signal, redirect: 'follow', mode: 'cors'});
-    clearTimeout(timeout);
-    const json = await res.json();
-    if(json.status !== 'ok' || !json.data || Object.keys(json.data).length === 0) {
-      setSyncStatus('ok', 'Nema podataka u oblaku');
-      return false;
-    }
-    // Merge: cloud data + preserve any local keys not in cloud
-    // This prevents overwriting data that hasn't been pushed yet
-    const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
-    // Save local keys that cloud doesn't have (unsent changes)
-    const localOnly = {};
-    Object.keys(localStorage)
-      .filter(k => appPrefixes.some(p => k.startsWith(p)) && !(k in json.data))
-      .forEach(k => { localOnly[k] = localStorage.getItem(k); });
-    // Apply cloud data
-    Object.keys(localStorage)
-      .filter(k => appPrefixes.some(p => k.startsWith(p)))
-      .forEach(k => localStorage.removeItem(k));
-    Object.entries(json.data).forEach(([k,v]) => localStorage.setItem(k, v));
-    // Restore local-only keys
-    Object.entries(localOnly).forEach(([k,v]) => localStorage.setItem(k, v));
-    const time = new Date().toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'});
-    setSyncStatus('ok', 'Sinkronizirano u ' + time);
-    return true;
-  } catch(e) {
-    setSyncStatus('err', 'Nema veze — lokalni podaci');
-    return false;
-  }
-}
-
-// Push to cloud after every save (short debounce to batch rapid inputs)
+// ── SAVE OVERRIDE — push+pull on every change ─
 const _origSave = save;
 function save() {
   _origSave();
   clearTimeout(syncTimeout);
-  syncTimeout = setTimeout(pushToCloud, 800);
+  syncTimeout = setTimeout(pushAndPull, 1000);
 }
 
+// ── MANUAL SYNC button ────────────────────────
 async function syncNow() {
-  setSyncStatus('syncing', 'Sinkronizacija...');
-  await pushToCloud();
+  await pushAndPull();
 }
 
-// On init — pull from cloud first, then render
-function initApp() {
-  // Hide disabled portfolios in sidebar
-  const cfg2 = loadPortConfig();
-  Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
-    if(cfg2[key] === false) {
-      document.querySelectorAll('.nc').forEach(function(el) {
-        if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
-          el.style.display = 'none';
-      });
-    }
-  });
-  if(typeof buildHeaderPeriodPicker === 'function') buildHeaderPeriodPicker();
-  initWithSync();
-  // Auto-refresh every 60 seconds
-  setInterval(async () => {
-    const loaded = await pullFromCloud();
-    if(loaded) {
-      DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
-      bucketCfg = loadBucketConfig();
-      const activePage = document.querySelector('.page.active');
-      if(activePage) {
-        const id = activePage.id.replace('page-','');
-        if(id === 'dashboard') renderDash();
-        else if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
-      }
-    }
-  }, 30000);
-}
-
-async function initWithSync() {
-  setSyncStatus('syncing', 'Učitavam...');
-  // Render immediately from local
-  DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
+// ── HELPERS ───────────────────────────────────
+function reloadAndRender() {
+  DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
-  if(typeof buildHeaderPeriodPicker === 'function') buildHeaderPeriodPicker();
+  const ap = document.querySelector('.page.active');
+  if(!ap) return;
+  const id = ap.id.replace('page-','');
+  if(id==='dashboard') renderDash();
+  else if(id==='cat'&&typeof _sec!=='undefined') renderCatPage(_sec,_cat);
+  else if(id==='investments') renderInvPortfolio();
+}
+
+// ── INIT — called after PIN unlock ───────────
+async function initWithSync() {
+  // Render from local immediately
+  DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
+  bucketCfg = loadBucketConfig();
+  if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
   renderDash();
-  // Pull from cloud and re-render
-  const loaded = await pullFromCloud();
-  if(loaded) {
-    DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
-    bucketCfg = loadBucketConfig();
-    renderDash();
-    const ap = document.querySelector('.page.active');
-    if(ap && ap.id !== 'page-dashboard') {
-      const id = ap.id.replace('page-','');
-      if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
-    }
-  }
-  // Auto-refresh every 45 seconds
-  setInterval(async () => {
+  // Pull from cloud on start (after PIN)
+  const ok = await pullFromCloud();
+  if(ok) reloadAndRender();
+}
+
+// ── INIT ─────────────────────────────────────
+async function initWithSync() {
+  // Render from local immediately
+  DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
+  bucketCfg = loadBucketConfig();
+  if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
+  renderDash();
+  // Pull on start (slight delay so page is ready)
+  setTimeout(async () => {
     const ok = await pullFromCloud();
-    if(ok) {
-      DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
-      bucketCfg = loadBucketConfig();
-      const ap = document.querySelector('.page.active');
-      if(ap) {
-        const id = ap.id.replace('page-','');
-        if(id === 'dashboard') renderDash();
-        else if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
-      }
+    if(ok) reloadAndRender();
+  }, 600);
+  // Auto-pull every 60s ONLY if no pending local changes
+  setInterval(async () => {
+    if(lastEditTime <= lastPushTime) {
+      const ok = await pullFromCloud();
+      if(ok) reloadAndRender();
     }
-  }, 45000);
+  }, 60000);
 }
 
 // ── INIT ──
