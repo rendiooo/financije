@@ -1604,12 +1604,21 @@ async function pullFromCloud() {
       setSyncStatus('ok', 'Nema podataka u oblaku');
       return false;
     }
-    // Cloud is always master — overwrite local
-    const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','_sync_ts'];
+    // Merge: cloud data + preserve any local keys not in cloud
+    // This prevents overwriting data that hasn't been pushed yet
+    const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
+    // Save local keys that cloud doesn't have (unsent changes)
+    const localOnly = {};
+    Object.keys(localStorage)
+      .filter(k => appPrefixes.some(p => k.startsWith(p)) && !(k in json.data))
+      .forEach(k => { localOnly[k] = localStorage.getItem(k); });
+    // Apply cloud data
     Object.keys(localStorage)
       .filter(k => appPrefixes.some(p => k.startsWith(p)))
       .forEach(k => localStorage.removeItem(k));
     Object.entries(json.data).forEach(([k,v]) => localStorage.setItem(k, v));
+    // Restore local-only keys
+    Object.entries(localOnly).forEach(([k,v]) => localStorage.setItem(k, v));
     const time = new Date().toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok', 'Sinkronizirano u ' + time);
     return true;
@@ -1619,12 +1628,12 @@ async function pullFromCloud() {
   }
 }
 
-// Debounced auto-push after any save
+// Push to cloud after every save (short debounce to batch rapid inputs)
 const _origSave = save;
 function save() {
   _origSave();
   clearTimeout(syncTimeout);
-  syncTimeout = setTimeout(pushToCloud, 1500);
+  syncTimeout = setTimeout(pushToCloud, 800);
 }
 
 async function syncNow() {
@@ -1663,26 +1672,38 @@ function initApp() {
 }
 
 async function initWithSync() {
-  // Show loading state
-  setSyncStatus('syncing', 'Učitavam podatke...');
-  // First render from local so screen isn't blank while waiting
+  setSyncStatus('syncing', 'Učitavam...');
+  // Render immediately from local
   DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
   bucketCfg = loadBucketConfig();
   if(typeof buildHeaderPeriodPicker === 'function') buildHeaderPeriodPicker();
   renderDash();
-  // Pull from cloud (cloud always wins)
+  // Pull from cloud and re-render
   const loaded = await pullFromCloud();
   if(loaded) {
-    // Re-render with fresh cloud data
     DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
     bucketCfg = loadBucketConfig();
     renderDash();
-    const activePage = document.querySelector('.page.active');
-    if(activePage && activePage.id !== 'page-dashboard') {
-      const id = activePage.id.replace('page-','');
+    const ap = document.querySelector('.page.active');
+    if(ap && ap.id !== 'page-dashboard') {
+      const id = ap.id.replace('page-','');
       if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
     }
   }
+  // Auto-refresh every 45 seconds
+  setInterval(async () => {
+    const ok = await pullFromCloud();
+    if(ok) {
+      DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
+      bucketCfg = loadBucketConfig();
+      const ap = document.querySelector('.page.active');
+      if(ap) {
+        const id = ap.id.replace('page-','');
+        if(id === 'dashboard') renderDash();
+        else if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
+      }
+    }
+  }, 45000);
 }
 
 // ── INIT ──
