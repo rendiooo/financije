@@ -1321,23 +1321,24 @@ function renderDash(){
 
   function calcStanjeForMonth(section, year, month) {
     const mk = String(month).padStart(2,'0');
-    const periodSave = periodKey(); // save current period
-    // Temporarily set period to this month/year for getDB to work
-    const savedYear = selYear, savedMonth = selMonth, savedTest = testMode;
-    selYear = year; selMonth = month; testMode = false;
+    const pfx = section==='planned' ? 'fp' : 'fa';
 
-    const uplata = getDB(section==='actual'?'actual':'planned', 'zajednicki', 'zajednicki_uplata');
+    const uKey = 'fa_zajednicki_zajednicki_uplata_' + year + '-' + mk;
+    const uplataRaw = parseFloat(localStorage.getItem(uKey)||'0')||0;
+    const uplataDefault = getDefault('actual','zajednicki','zajednicki_uplata');
+    const uplata = uplataRaw || uplataDefault;
+
     let troskovi = 0;
     ALL_CATS.forEach(cat => {
       SUBCATS[cat].forEach(sub => {
         if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata')) {
-          troskovi += getDB(section, cat, sub.key);
+          const k = pfx + '_' + cat + '_' + sub.key + '_' + year + '-' + mk;
+          const raw = parseFloat(localStorage.getItem(k)||'0')||0;
+          const def = getDefault(section, cat, sub.key);
+          troskovi += raw || def;
         }
       });
     });
-
-    // Restore period
-    selYear = savedYear; selMonth = savedMonth; testMode = savedTest;
     return {uplata, troskovi};
   }
 
@@ -1595,16 +1596,19 @@ function reloadAndRender() {
 
 // ── INIT — pull after PIN unlock ──────────────
 async function initWithSync() {
-  // Build period picker first
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
-  // Pull from cloud immediately
-  setSyncStatus('syncing', 'Učitavanje...');
-  const ok = await pullFromCloud();
-  // Load fresh data into DB
+  // Render from local first so dashboard isn't blank
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
-  // Render everything
-  renderDash();
+  try { renderDash(); } catch(e) { console.warn('renderDash local:', e); }
+  // Then pull from cloud
+  setSyncStatus('syncing', 'Učitavanje...');
+  const ok = await pullFromCloud();
+  if(ok) {
+    DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
+    bucketCfg = loadBucketConfig();
+  }
+  try { renderDash(); } catch(e) { console.warn('renderDash cloud:', e); }
 }
 
 // ── INIT ─────────────────────────────────────
