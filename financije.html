@@ -1591,17 +1591,16 @@ async function pullAndRender() {
 // ── INIT — after PIN ──────────────────────────
 async function initWithSync() {
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
-  // Render from local immediately
+  // Show loading state in dash-flow while pulling
+  const flowEl = document.getElementById('dash-flow');
+  if(flowEl) flowEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);font-size:14px">⏳ Učitavanje podataka...</div>';
+  // Pull from cloud FIRST
+  const ok = await pullFromCloud();
+  // Load data into DB
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
+  // Now render with fresh data
   try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
-  // Pull from cloud
-  const ok = await pullFromCloud();
-  if(ok) {
-    DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
-    bucketCfg = loadBucketConfig();
-    try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
-  }
 }
 
 // ── INIT ─────────────────────────────────────
