@@ -260,8 +260,28 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 .sync-dot.err{background:var(--red)}
 .sync-dot.syncing{background:var(--amber);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .sync-btn{margin-left:auto;padding:4px 10px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
 .sync-btn:hover{background:var(--bg);color:var(--text)}
+
+
+/* ── PIN SCREEN ── */
+.pin-screen{position:fixed;inset:0;background:var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .3s}
+.pin-screen.hidden{opacity:0;pointer-events:none}
+.pin-logo{font-family:'DM Serif Display',serif;font-size:32px;font-weight:400;color:#fff;margin-bottom:8px}
+.pin-sub{font-size:13px;color:rgba(255,255,255,.45);margin-bottom:40px;letter-spacing:.5px}
+.pin-dots{display:flex;gap:14px;margin-bottom:32px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);transition:all .15s}
+.pin-dot.filled{background:#fff;border-color:#fff}
+.pin-pad{display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(4,72px);gap:10px}
+.pin-btn{width:72px;height:72px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:22px;font-weight:400;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center}
+.pin-btn:hover{background:rgba(255,255,255,.2)}
+.pin-btn:active{background:rgba(255,255,255,.3);transform:scale(.95)}
+.pin-btn.empty{background:transparent;cursor:default;pointer-events:none}
+.pin-btn.del{background:transparent;font-size:18px}
+.pin-btn.del:hover{background:rgba(255,255,255,.1)}
+.pin-error{font-size:13px;color:#F87171;margin-top:16px;min-height:18px;text-align:center}
+.pin-forgot{font-size:12px;color:rgba(255,255,255,.35);margin-top:20px;cursor:pointer;text-decoration:underline}
 
 /* period picker */
 .period-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px}
@@ -271,6 +291,37 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 </style>
 </head>
 <body>
+
+<!-- ── PIN SCREEN ── -->
+<div class="pin-screen" id="pin-screen">
+  <div class="pin-logo">Financije</div>
+  <div class="pin-sub">OSOBNI TRACKER</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+    <div class="pin-dot" id="pd4"></div>
+    <div class="pin-dot" id="pd5"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn empty"></button>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-forgot" onclick="pinForgot()">Zaboravili ste PIN?</div>
+</div>
+
 <div class="layout">
 
 <!-- ════════════════ HEADER + DRAWER ════════════════ -->
@@ -456,6 +507,18 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
         <span style="font-size:14px;color:var(--muted);white-space:nowrap">€</span>
       </div>
       <p style="font-size:12px;color:var(--muted);margin-top:8px">Ovo se koristi za izračun planiranog i stvarnog stanja zajedničkog računa na dashboardu.</p>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:14px">PIN zaštita</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Postavite 4-znamenkasti PIN koji se traži pri svakom otvaranju aplikacije. Ostavite prazno za isključivanje PIN-a.</p>
+      <div style="display:flex;align-items:center;gap:10px;max-width:320px;flex-wrap:wrap">
+        <input type="password" id="pin-new" maxlength="6" inputmode="numeric" pattern="[0-9]*"
+          placeholder="Novi PIN (6 znamenki)" style="flex:1;min-width:140px"
+          oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,6)">
+        <button class="btn btn-p" onclick="savePin()">Postavi PIN</button>
+        <button class="btn" style="border:1px solid var(--border);background:transparent;color:var(--muted)" onclick="removePin()">Ukloni PIN</button>
+      </div>
+      <div id="pin-set-msg" style="font-size:12px;color:var(--green);margin-top:8px;min-height:18px"></div>
     </div>
     <div class="card" style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:14px">Investicijski portfelji</div>
@@ -682,6 +745,22 @@ function renderSettings() {
       ${rows}
     </div>`;
   }).join('');
+}
+
+function savePin() {
+  const val = document.getElementById('pin-new').value;
+  if(val.length !== 6) { document.getElementById('pin-set-msg').textContent = 'PIN mora imati točno 6 znamenki.'; return; }
+  setPin(val);
+  sessionStorage.setItem(PIN_SESSION, '1');
+  document.getElementById('pin-new').value = '';
+  document.getElementById('pin-set-msg').style.color = 'var(--green)';
+  document.getElementById('pin-set-msg').textContent = '✓ PIN je postavljen.';
+}
+function removePin() {
+  localStorage.removeItem(PIN_KEY);
+  sessionStorage.removeItem(PIN_SESSION);
+  document.getElementById('pin-set-msg').style.color = 'var(--amber)';
+  document.getElementById('pin-set-msg').textContent = 'PIN je uklonjen — aplikacija se otvara bez lozinke.';
 }
 
 function togglePortfolio(key, enabled) {
@@ -1391,6 +1470,92 @@ function refreshCurrentPage(){
 }
 
 
+
+// ══════════════════════════════════════════════
+// PIN LOCK
+// ══════════════════════════════════════════════
+const PIN_KEY = 'app_pin';
+const PIN_SESSION = 'pin_unlocked';
+let pinBuffer = '';
+
+function getPin()    { return localStorage.getItem(PIN_KEY) || '250425'; }
+function setPin(p)   { localStorage.setItem(PIN_KEY, p); }
+
+function pinPress(d) {
+  if(pinBuffer.length >= 6) return;
+  pinBuffer += d;
+  updatePinDots();
+  if(pinBuffer.length === 6) {
+    setTimeout(checkPin, 150);
+  }
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0,-1);
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+}
+
+function updatePinDots() {
+  for(let i=0;i<6;i++) {
+    const dot = document.getElementById('pd'+i);
+    if(dot) dot.classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+
+function checkPin() {
+  const saved = getPin();
+  if(!saved) {
+    // No PIN set — unlock directly
+    unlockApp();
+    return;
+  }
+  if(pinBuffer === saved) {
+    sessionStorage.setItem(PIN_SESSION, '1');
+    unlockApp();
+  } else {
+    document.getElementById('pin-error').textContent = 'Pogrešan PIN, pokušajte ponovo';
+    pinBuffer = '';
+    updatePinDots();
+    // Shake animation
+    const screen = document.getElementById('pin-screen');
+    screen.style.animation = 'shake .3s ease';
+    setTimeout(()=>screen.style.animation='', 300);
+  }
+}
+
+function unlockApp() {
+  const screen = document.getElementById('pin-screen');
+  screen.classList.add('hidden');
+  setTimeout(()=>screen.style.display='none', 300);
+}
+
+function pinForgot() {
+  const r = prompt('Unesite master lozinku za resetiranje PIN-a:', '');
+  if(r === 'financije2025') {
+    localStorage.removeItem(PIN_KEY);
+    sessionStorage.removeItem(PIN_SESSION);
+    alert('PIN je resetiran. Otvorite aplikaciju ponovo i postavite novi PIN u Postavkama.');
+  } else if(r !== null) {
+    alert('Pogrešna lozinka.');
+  }
+}
+
+function checkPinOnLoad() {
+  const pin = getPin();
+  if(!pin) {
+    // No PIN set — skip lock screen
+    unlockApp();
+    return;
+  }
+  if(sessionStorage.getItem(PIN_SESSION) === '1') {
+    // Already unlocked this session
+    unlockApp();
+    return;
+  }
+  // Show lock screen (already visible by default)
+}
+
 // ══════════════════════════════════════════════
 // GOOGLE SHEETS SYNC
 // ══════════════════════════════════════════════
@@ -1519,6 +1684,7 @@ async function initWithSync() {
     }
   });
 })();
+checkPinOnLoad();
 initWithSync();
 </script>
 </body>
