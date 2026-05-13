@@ -374,7 +374,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <div class="sync-bar" id="sync-bar">
     <div class="sync-dot" id="sync-dot"></div>
     <span id="sync-status">Povezivanje...</span>
-    <button class="sync-btn" onclick="syncNow()">↻ Sinkroniziraj</button>
+    <button class="sync-btn" onclick="syncNow()">💾 Spremi u oblak</button>
   </div>
 
   <!-- DASHBOARD -->
@@ -1474,10 +1474,11 @@ document.addEventListener('keydown', function(e) {
 
 // ══════════════════════════════════════════════
 // GOOGLE SHEETS SYNC
+// Pull: on PIN, on tab/category open
+// Push: only on manual Save button
 // ══════════════════════════════════════════════
 const SYNC_URL = 'https://script.google.com/macros/s/AKfycbxPsV2UqKQ0DMm67GTHc3Ejd7jJURTz_Qh02MX893VtgViBa_JoJA2nBZEXLiuC4Tdt/exec';
-let syncTimeout = null;
-let isSyncing   = false;
+let isSyncing = false;
 
 function setSyncStatus(state, msg) {
   const dot = document.getElementById('sync-dot');
@@ -1487,7 +1488,7 @@ function setSyncStatus(state, msg) {
   txt.textContent = msg;
 }
 
-// ── PULL via JSONP (no CORS) ──────────────────
+// ── PULL via JSONP ────────────────────────────
 function pullFromCloud() {
   return new Promise((resolve) => {
     setSyncStatus('syncing', 'Učitavanje...');
@@ -1512,10 +1513,10 @@ function pullFromCloud() {
           .forEach(k=>localStorage.removeItem(k));
         Object.entries(json.data).forEach(([k,v])=>localStorage.setItem(k,v));
         const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
-        setSyncStatus('ok', 'Sinkronizirano u ' + t);
+        setSyncStatus('ok', 'Učitano u ' + t);
         resolve(true);
       } else {
-        setSyncStatus('ok', 'Lokalni podaci');
+        setSyncStatus('ok', 'Nema podataka u oblaku');
         resolve(false);
       }
     };
@@ -1530,8 +1531,8 @@ function pullFromCloud() {
   });
 }
 
-// ── PUSH then PULL ────────────────────────────
-async function pushAndPull() {
+// ── PUSH — only on manual Save ────────────────
+async function pushToCloud() {
   if(isSyncing) return;
   isSyncing = true;
   setSyncStatus('syncing', 'Spremanje...');
@@ -1550,30 +1551,31 @@ async function pushAndPull() {
     const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok', 'Spremljeno u ' + t);
   } catch(e) {
-    setSyncStatus('err', 'Push nije uspio');
+    setSyncStatus('err', 'Greška pri spremanju');
   } finally {
     isSyncing = false;
   }
-  // Pull after push (small delay for cloud to process)
-  await new Promise(r=>setTimeout(r, 800));
-  const ok = await pullFromCloud();
-  if(ok) reloadAndRender();
 }
 
-// ── SAVE OVERRIDE — push+pull on every change ─
-const _origSave = save;
-function save() {
-  _origSave();
-  clearTimeout(syncTimeout);
-  syncTimeout = setTimeout(pushAndPull, 1000);
-}
-
-// ── MANUAL SYNC button ────────────────────────
+// ── MANUAL SAVE button ────────────────────────
 async function syncNow() {
-  await pushAndPull();
+  await pushToCloud();
 }
 
-// ── HELPERS ───────────────────────────────────
+// ── NO auto-save on every keystroke ───────────
+// save() only saves to localStorage, no push
+// _origSave is the original localStorage save
+
+// ── PULL + RENDER helper ──────────────────────
+async function pullAndRender() {
+  const ok = await pullFromCloud();
+  if(ok) {
+    DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
+    bucketCfg = loadBucketConfig();
+    reloadAndRender();
+  }
+}
+
 function reloadAndRender() {
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
@@ -1585,16 +1587,14 @@ function reloadAndRender() {
   else if(id==='investments') renderInvPortfolio();
 }
 
-// ── INIT — called after PIN unlock ───────────
+// ── INIT — pull after PIN unlock ──────────────
 async function initWithSync() {
-  // Render from local immediately
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
   renderDash();
-  // Pull from cloud on start (after PIN)
-  const ok = await pullFromCloud();
-  if(ok) reloadAndRender();
+  // Pull on start (after PIN)
+  await pullAndRender();
 }
 
 // ── INIT ─────────────────────────────────────
