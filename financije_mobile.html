@@ -751,7 +751,7 @@ function savePin() {
   const val = document.getElementById('pin-new').value;
   if(val.length !== 6) { document.getElementById('pin-set-msg').textContent = 'PIN mora imati točno 6 znamenki.'; return; }
   setPin(val);
-  localStorage.setItem(PIN_SESSION, Date.now().toString());
+  sessionStorage.setItem('pin_ok', '1');
   document.getElementById('pin-new').value = '';
   document.getElementById('pin-set-msg').style.color = 'var(--green)';
   document.getElementById('pin-set-msg').textContent = '✓ PIN je postavljen.';
@@ -1475,7 +1475,7 @@ function refreshCurrentPage(){
 // PIN LOCK
 // ══════════════════════════════════════════════
 const PIN_KEY = 'app_pin';
-const PIN_SESSION = 'pin_unlocked_ts';
+const PIN_SESSION = 'pin_unlocked_ts'; // localStorage timestamp
 let pinBuffer = '';
 
 function getPin()    { return localStorage.getItem(PIN_KEY) || '250425'; }
@@ -1511,7 +1511,7 @@ function checkPin() {
     return;
   }
   if(pinBuffer === saved) {
-    localStorage.setItem(PIN_SESSION, Date.now().toString());
+    sessionStorage.setItem('pin_ok', '1');
     unlockApp();
   } else {
     document.getElementById('pin-error').textContent = 'Pogrešan PIN, pokušajte ponovo';
@@ -1525,12 +1525,17 @@ function checkPin() {
 }
 
 function unlockApp() {
-  localStorage.setItem(PIN_SESSION, Date.now().toString());
+  sessionStorage.setItem('pin_ok', '1');
   const screen = document.getElementById('pin-screen');
   const layout = document.getElementById('app-layout');
   screen.classList.add('hidden');
   if(layout) layout.style.display = '';
   setTimeout(()=>screen.style.display='none', 300);
+  // Init app only after PIN
+  if(!window._appInited) {
+    window._appInited = true;
+    initApp();
+  }
 }
 
 function pinForgot() {
@@ -1546,17 +1551,11 @@ function pinForgot() {
 
 function checkPinOnLoad() {
   const pin = getPin();
-  if(!pin) {
-    unlockApp();
-    return;
-  }
-  const unlockedAt = parseInt(localStorage.getItem(PIN_SESSION) || '0');
-  const thirtyMin = 30 * 60 * 1000;
-  if(Date.now() - unlockedAt < thirtyMin) {
-    unlockApp();
-    return;
-  }
-  // PIN required — screen stays visible, app hidden
+  // No PIN configured — go straight in
+  if(!pin) { unlockApp(); return; }
+  // Already unlocked in this browser tab
+  if(sessionStorage.getItem('pin_ok') === '1') { unlockApp(); return; }
+  // Otherwise — PIN screen stays, app stays hidden
 }
 
 // ══════════════════════════════════════════════
@@ -1622,23 +1621,15 @@ async function pullFromCloud() {
       return false;
     }
 
-    const cloudTs  = parseInt(json.data['_sync_ts'] || '0');
-    const localTs  = parseInt(localStorage.getItem('_sync_ts') || '0');
-
-    // Only overwrite local if cloud is newer
-    if(cloudTs > localTs) {
-      const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','_sync_ts'];
-      Object.keys(localStorage)
-        .filter(k => appPrefixes.some(p => k.startsWith(p)))
-        .forEach(k => localStorage.removeItem(k));
-      Object.entries(json.data).forEach(([k,v]) => localStorage.setItem(k, v));
-      const time = new Date().toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'});
-      setSyncStatus('ok', 'Podaci učitani u ' + time);
-      return true;
-    } else {
-      setSyncStatus('ok', 'Lokalni podaci su ažurniji');
-      return false;
-    }
+    // Always apply cloud data (cloud is master)
+    const appPrefixes = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','_sync_ts'];
+    Object.keys(localStorage)
+      .filter(k => appPrefixes.some(p => k.startsWith(p)))
+      .forEach(k => localStorage.removeItem(k));
+    Object.entries(json.data).forEach(([k,v]) => localStorage.setItem(k, v));
+    const time = new Date().toLocaleTimeString('hr-HR', {hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('ok', 'Sinkronizirano u ' + time);
+    return true;
   } catch(e) {
     setSyncStatus('err', 'Nema veze — koristim lokalne podatke');
     return false;
@@ -1659,6 +1650,34 @@ async function syncNow() {
 }
 
 // On init — pull from cloud first, then render
+function initApp() {
+  // Hide disabled portfolios in sidebar
+  const cfg2 = loadPortConfig();
+  Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
+    if(cfg2[key] === false) {
+      const sel = '.nc[onclick*="goInv('' + key + '')"]';
+      const navEl = document.querySelector(sel);
+      if(navEl) navEl.style.display = 'none';
+    }
+  });
+  if(typeof buildHeaderPeriodPicker === 'function') buildHeaderPeriodPicker();
+  initWithSync();
+  // Auto-refresh every 60 seconds
+  setInterval(async () => {
+    const loaded = await pullFromCloud();
+    if(loaded) {
+      DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
+      bucketCfg = loadBucketConfig();
+      const activePage = document.querySelector('.page.active');
+      if(activePage) {
+        const id = activePage.id.replace('page-','');
+        if(id === 'dashboard') renderDash();
+        else if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
+      }
+    }
+  }, 30000);
+}
+
 async function initWithSync() {
   setSyncStatus('syncing', 'Učitavanje podataka...');
   const loaded = await pullFromCloud();
@@ -1670,33 +1689,8 @@ async function initWithSync() {
 }
 
 // ── INIT ──
-(function() {
-  const cfg = loadPortConfig();
-  Object.keys(INV_PORTFOLIOS_DEF).forEach(key => {
-    if(cfg[key] === false) {
-      const sel = '.nc[onclick*="goInv(\'' + key + '\')"]';
-      const navEl = document.querySelector(sel);
-      if(navEl) navEl.style.display = 'none';
-    }
-  });
-})();
+// ── INIT ──
 checkPinOnLoad();
-initWithSync();
-// Auto-refresh from cloud every 60 seconds
-setInterval(async () => {
-  const loaded = await pullFromCloud();
-  if(loaded) {
-    DB.investments = JSON.parse(localStorage.getItem('finv') || '[]');
-    bucketCfg = loadBucketConfig();
-    // Refresh current visible page
-    const activePage = document.querySelector('.page.active');
-    if(activePage) {
-      const id = activePage.id.replace('page-','');
-      if(id === 'dashboard') renderDash();
-      else if(id === 'cat' && typeof _sec !== 'undefined') renderCatPage(_sec, _cat);
-    }
-  }
-}, 60000);
 </script>
 </body>
 </html>
