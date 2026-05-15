@@ -458,6 +458,11 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <p style="font-size:12px;color:var(--muted);margin-top:8px">Ovo se koristi za izračun planiranog i stvarnog stanja zajedničkog računa na dashboardu.</p>
     </div>
     <div class="card" style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:14px">Zaključavanje plana po godini</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Zaključajte plan za određenu godinu da spriječite slučajne izmjene.</p>
+      <div id="settings-year-lock"></div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:14px">PIN zaštita</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Postavite 4-znamenkasti PIN koji se traži pri svakom otvaranju aplikacije. Ostavite prazno za isključivanje PIN-a.</p>
       <div style="display:flex;align-items:center;gap:10px;max-width:320px;flex-wrap:wrap">
@@ -568,6 +573,28 @@ const GROUPS = {
 };
 
 
+
+// ══════════════════════════════════════════════
+// YEAR LOCK — lock planned values for a year
+// ══════════════════════════════════════════════
+const LOCK_KEY = 'locked_years';
+
+function getLockedYears() {
+  try { return JSON.parse(localStorage.getItem(LOCK_KEY)||'[]'); } catch(e) { return []; }
+}
+function isYearLocked(year) {
+  return getLockedYears().includes(Number(year));
+}
+function toggleYearLock(year) {
+  const locked = getLockedYears();
+  const yr = Number(year);
+  const idx = locked.indexOf(yr);
+  if(idx === -1) locked.push(yr);
+  else locked.splice(idx, 1);
+  localStorage.setItem(LOCK_KEY, JSON.stringify(locked));
+  renderSettings();
+}
+
 // ══════════════════════════════════════════════
 // BUCKET CONFIG — prihod / rashod / zajednicki
 // ══════════════════════════════════════════════
@@ -629,6 +656,26 @@ function renderSettings() {
   const pocEl = document.getElementById('pocetno-stanje');
   if (pocEl) pocEl.value = loadPocetnoStanje() || '';
   const portCfg = loadPortConfig();
+
+  // Render year lock section
+  const lockEl = document.getElementById('settings-year-lock');
+  if(lockEl) {
+    const now = new Date().getFullYear();
+    const years = [2024,2025,2026,2027,2028,2029,2030];
+    lockEl.innerHTML = years.map(yr => {
+      const locked = isYearLocked(yr);
+      return `<div class="set-row" style="padding-left:4px">
+        <span class="set-row-label" style="display:flex;align-items:center;gap:8px">
+          ${locked ? '🔒' : '🔓'} ${yr}. godina
+          ${locked ? '<span style="font-size:11px;color:var(--amber);font-weight:500">ZAKLJUČANO</span>' : ''}
+        </span>
+        <label class="toggle-switch">
+          <input type="checkbox" ${locked?'checked':''} onchange="toggleYearLock(${yr})">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`;
+    }).join('');
+  }
 
   // Render portfolio toggles at top of settings
   const portSection = document.getElementById('settings-portfolios');
@@ -776,7 +823,7 @@ function buildPeriodPicker(barId, onChangeFn) {
   if (!bar) return;
 
   const startYear = 2024;
-  const endYear   = NOW.getFullYear() + 1;
+  const endYear   = 2030;
   const years = Array.from({length: endYear - startYear + 1}, (_,i) => startYear + i);
 
   const MONTHS_HR = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
@@ -925,7 +972,10 @@ function renderCatPage(section, cat) {
 
   document.getElementById('cat-bc').textContent = (section==='planned'?'Planirani troškovi':'Stvarni troškovi') + ' ›';
   document.getElementById('cat-title').textContent = m.label;
-  document.getElementById('cat-sub').textContent = section==='planned' ? 'Unesite planirane iznose po kategoriji' : 'Unesite stvarne iznose po kategoriji';
+  const isLocked = section === 'planned' && !testMode && isYearLocked(selYear);
+  document.getElementById('cat-sub').textContent = isLocked
+    ? '🔒 Plan za ' + selYear + '. godinu je zaključan'
+    : (section==='planned' ? 'Unesite planirane iznose po kategoriji' : 'Unesite stvarne iznose po kategoriji');
 
   let rowsHTML = '';
   subs.forEach(sub => { rowsHTML += subcatRowTbl(section, cat, sub, isInc); });
@@ -969,6 +1019,12 @@ function subcatRowTbl(section, cat, sub, isInc) {
 }
 
 function saveVal(section, cat, key, inp) {
+  // Block edits on locked planned years
+  if(section === 'planned' && !testMode && isYearLocked(selYear)) {
+    inp.value = getDB(section, cat, key) || '';
+    alert('Plan za ' + selYear + '. godinu je zaključan. Otključajte ga u Postavkama.');
+    return;
+  }
   const val = parseFloat(inp.value) || 0;
   setDB(section, cat, key, val);
   save();
@@ -1605,6 +1661,11 @@ function initApp() {
 }
 
 async function initWithSync() {
+  // Always start on current month/year
+  const _now = new Date();
+  selYear  = _now.getFullYear();
+  selMonth = _now.getMonth() + 1;
+  testMode = false;
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
   // Pull data from cloud
   const ok = await pullFromCloud();
