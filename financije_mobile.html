@@ -664,29 +664,24 @@ const GROUPS = {
 // ══════════════════════════════════════════════
 // KALKULATOR
 // ══════════════════════════════════════════════
-const KALK_CONFIG_KEY = 'kalk_config';
+const KALK_CONFIG_KEY = 'kalk_config_v2';
 
-// Default: 4 expense slots per person, assigned to Matea or Matija
 function defaultKalkConfig() {
   return {
-    matea: {
-      placa_key: 'prihodi__placa_matea',  // subcat key for salary
-      troškovi: [
-        {key:'rezije__kredit_matea', label:'Kredit Matea'},
-        {key:'automobili__leasing', label:'Leasing'},
-        {key:'_deparac', label:'Đeparac', fixed:400},
-        {key:'stednja__sp500', label:'Štednja S&P 500'},
-      ]
-    },
-    matija: {
-      placa_key: 'prihodi__placa_matija',
-      troškovi: [
-        {key:'rezije__kredit_matija', label:'Kredit Matija'},
-        {key:'automobili__leasing', label:'Leasing'},
-        {key:'_deparac', label:'Đeparac', fixed:400},
-        {key:'stednja__sp500', label:'Štednja S&P 500'},
-      ]
-    }
+    matea:  { rows: [
+      {key:'prihodi__placa_matea',       label:'Plaća Matea',    type:'prihod'},
+      {key:'rezije__kredit_matea',        label:'Kredit Matea',   type:'trosak'},
+      {key:'automobili__leasing',         label:'Leasing',        type:'trosak'},
+      {key:'_deparac',                    label:'Đeparac',        type:'trosak'},
+      {key:'stednja__xau_revolut',        label:'Štednja',        type:'trosak'},
+    ]},
+    matija: { rows: [
+      {key:'prihodi__placa_matija',       label:'Plaća Matija',   type:'prihod'},
+      {key:'rezije__kredit_matija',       label:'Kredit Matija',  type:'trosak'},
+      {key:'automobili__leasing',         label:'Leasing',        type:'trosak'},
+      {key:'_deparac',                    label:'Đeparac',        type:'trosak'},
+      {key:'stednja__sp500',             label:'Štednja',        type:'trosak'},
+    ]},
   };
 }
 
@@ -698,125 +693,95 @@ function loadKalkConfig() {
 }
 function saveKalkConfig(cfg) { localStorage.setItem(KALK_CONFIG_KEY, JSON.stringify(cfg)); }
 
-// Build list of all subcats for assignment dropdowns
-function allSubcatOptions() {
-  const opts = [{key:'_none', label:'— nije dodijeljeno —'}, {key:'_deparac', label:'Đeparac (fiksno 400€)'}];
-  ALL_CATS.forEach(cat => {
-    SUBCATS[cat].forEach(sub => {
-      opts.push({key: cat + '__' + sub.key, label: sub.label});
-    });
-  });
-  return opts;
-}
-
-function getKalkValue(subKey, yearMonth) {
-  // Returns ACTUAL value for a subcat key like 'rezije__kredit_matea'
+function getKalkValue(subKey, ym) {
   if(subKey === '_deparac') return 400;
   if(!subKey || subKey === '_none') return 0;
   const parts = subKey.split('__');
   if(parts.length < 2) return 0;
   const [cat, key] = parts;
-  // Read from actual (fa_) localStorage for the given period
-  const stored = parseFloat(localStorage.getItem('fa_' + cat + '_' + key + '_' + yearMonth) || '0') || 0;
-  if(stored) return stored;
-  // Fall back to planned value
-  const planned = parseFloat(localStorage.getItem('fp_' + cat + '_' + key + '_' + yearMonth) || '0') || 0;
+  const actual  = parseFloat(localStorage.getItem('fa_'+cat+'_'+key+'_'+ym)||'0')||0;
+  if(actual) return actual;
+  const planned = parseFloat(localStorage.getItem('fp_'+cat+'_'+key+'_'+ym)||'0')||0;
   if(planned) return planned;
-  // Fall back to default
   return getDefault('actual', cat, key) || 0;
 }
 
 function renderKalkulator() {
-  const cfg = loadKalkConfig();
   const body = document.getElementById('kalk-body');
   if(!body) return;
-
-  // Current period
-  const ym = testMode ? 'TEST' : (selYear + '-' + String(selMonth).padStart(2,'0'));
+  const cfg = loadKalkConfig();
+  const ym  = testMode ? 'TEST' : (selYear+'-'+String(selMonth).padStart(2,'0'));
   const MONTHS_HR = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
-  const periodLabel = testMode ? 'TEST' : ('Stvarno — ' + MONTHS_HR[selMonth-1] + ' ' + selYear);
+  const periodLabel = testMode ? 'TEST' : (MONTHS_HR[selMonth-1]+' '+selYear);
 
   const persons = [
-    {id:'matea',  name:'Matea',  bg:'#E8F5EE', fg:'#1A6B45', avatar:'Ma'},
-    {id:'matija', name:'Matija', bg:'#FFF3E0', fg:'#9A5B0A', avatar:'Mj'},
+    {id:'matea',  name:'Matea',  color:'#2D9E6B'},
+    {id:'matija', name:'Matija', color:'#2A6BAD'},
   ];
 
-  body.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:14px">Podatci iz <strong>${periodLabel}</strong></div>` +
-  persons.map(p => {
-    const pcfg = cfg[p.id];
-    const placa = getKalkValue(pcfg.placa_key, ym);
-    const trRows = pcfg.troškovi.map((t, i) => {
-      const val = getKalkValue(t.key, ym);
-      return {label: t.label, val, key: t.key, idx: i};
-    });
-    const totalOdbitak = trRows.reduce((s,r)=>s+r.val, 0);
-    const uplata = placa - totalOdbitak;
+  const cards = persons.map(p => {
+    const rows = cfg[p.id].rows;
+    let result = 0;
+    const rowHtml = rows.map(r => {
+      const val = getKalkValue(r.key, ym);
+      if(r.type === 'prihod') result += val;
+      else result -= val;
+      const sign = r.type === 'prihod' ? '+' : '−';
+      const col  = r.type === 'prihod' ? 'var(--green)' : 'var(--red)';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:0.5px solid var(--border)">
+        <span style="font-size:14px;color:var(--muted)">${sign} ${r.label}</span>
+        <span style="font-size:14px;font-weight:600;color:${col}">${sign}${fmtFull(val)}</span>
+      </div>`;
+    }).join('');
 
-    return `<div class="kalk-person">
-      <div class="kalk-person-hdr">
-        <div class="kalk-avatar" style="background:${p.bg};color:${p.fg}">${p.avatar}</div>
-        <span class="kalk-name">${p.name}</span>
-        <span class="kalk-result ${uplata>=0?'pos':'neg'}" style="color:${uplata>=0?'var(--green)':'var(--red)'}">${uplata>=0?'+':'−'}${fmtFull(Math.abs(uplata))}</span>
-      </div>
-      <div class="kalk-row">
-        <span class="kalk-row-label">Plaća</span>
-        <span class="kalk-row-val pos">+${fmtFull(placa)}</span>
-      </div>
-      ${trRows.map(r=>`
-      <div class="kalk-row">
-        <span class="kalk-row-label">− ${r.label}</span>
-        <span class="kalk-row-val neg">−${fmtFull(r.val)}</span>
-      </div>`).join('')}
-      <div class="kalk-total-row">
-        <span class="kalk-total-label">Uplata na zajednički račun</span>
-        <span class="kalk-result" style="font-size:18px;color:${uplata>=0?'var(--green)':'var(--red)'}">${uplata>=0?'+':'−'}${fmtFull(Math.abs(uplata))}</span>
+    const resColor = result >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<div class="card" style="border-top:3px solid ${p.color};margin-bottom:16px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:12px">${p.name}</div>
+      ${rowHtml}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0 4px;border-top:2px solid var(--border);margin-top:4px">
+        <span style="font-size:15px;font-weight:700">Uplata na zajednički račun</span>
+        <span style="font-size:20px;font-weight:700;color:${resColor}">${result>=0?'+':'−'}${fmtFull(Math.abs(result))}</span>
       </div>
     </div>`;
   }).join('');
+
+  body.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
+      Podatci iz stvarnih troškova — <strong>${periodLabel}</strong>
+    </div>
+    ${cards}`;
 }
 
-// Settings section for kalkulator config
 function renderKalkSettings() {
   const el = document.getElementById('settings-kalk');
   if(!el) return;
   const cfg = loadKalkConfig();
-  const opts = allSubcatOptions();
+  const opts = [{key:'_none',label:'— nije dodijeljeno —'},{key:'_deparac',label:'Đeparac (400€)'}];
+  ALL_CATS.forEach(cat => SUBCATS[cat].forEach(sub => opts.push({key:cat+'__'+sub.key, label:sub.label})));
   const optHtml = opts.map(o=>`<option value="${o.key}">${o.label}</option>`).join('');
 
-  const persons = [
-    {id:'matea',  name:'Matea'},
-    {id:'matija', name:'Matija'},
-  ];
-
+  const persons = [{id:'matea',name:'Matea'},{id:'matija',name:'Matija'}];
   el.innerHTML = persons.map(p => {
-    const pcfg = cfg[p.id];
-    return `<div style="margin-bottom:16px">
-      <div style="font-size:13px;font-weight:600;margin-bottom:8px">${p.name}</div>
-      <div style="margin-bottom:8px">
-        <label class="fl">Plaća (izvor)</label>
-        <select onchange="kalkSetPlaca('${p.id}',this.value)">
-          ${opts.map(o=>`<option value="${o.key}" ${o.key===pcfg.placa_key?'selected':''}>${o.label}</option>`).join('')}
+    const rows = cfg[p.id].rows;
+    return `<div style="margin-bottom:18px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">${p.name}</div>
+      ${rows.map((r,i)=>`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <select style="flex:1" onchange="kalkSetRow('${p.id}',${i},'key',this.value);kalkSetRow('${p.id}',${i},'label',this.options[this.selectedIndex].text)">
+          ${opts.map(o=>`<option value="${o.key}" ${o.key===r.key?'selected':''}>${o.label}</option>`).join('')}
         </select>
-      </div>
-      ${pcfg.troškovi.map((t,i)=>`
-      <div style="margin-bottom:6px">
-        <label class="fl">Trošak ${i+1}</label>
-        <select onchange="kalkSetTrosak('${p.id}',${i},this.value,this.options[this.selectedIndex].text)">
-          ${opts.map(o=>`<option value="${o.key}" ${o.key===t.key?'selected':''}>${o.label}</option>`).join('')}
+        <select style="width:90px" onchange="kalkSetRow('${p.id}',${i},'type',this.value)">
+          <option value="prihod"  ${r.type==='prihod' ?'selected':''}>Prihod</option>
+          <option value="trosak"  ${r.type==='trosak' ?'selected':''}>Trošak</option>
         </select>
       </div>`).join('')}
     </div>`;
-  }).join('<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">');
+  }).join('<hr style="border:none;border-top:1px solid var(--border);margin:8px 0">');
 }
 
-function kalkSetPlaca(personId, subKey) {
+function kalkSetRow(personId, idx, field, value) {
   const cfg = loadKalkConfig();
-  cfg[personId].placa_key = subKey;
-  saveKalkConfig(cfg);
-}
-function kalkSetTrosak(personId, idx, subKey, label) {
-  const cfg = loadKalkConfig();
-  cfg[personId].troškovi[idx] = {key: subKey, label: label};
+  cfg[personId].rows[idx][field] = value;
   saveKalkConfig(cfg);
 }
 
