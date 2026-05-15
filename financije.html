@@ -1090,9 +1090,11 @@ function goPage(id, el){
   clearActive(); el.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  if(id==='dashboard')   renderDash();
-  if(id==='investments'){renderInvPortfolio();}
-  if(id==='settings')    renderSettings();
+  if(id==='dashboard')   { renderDash(); pullAndRender(); return; }
+  if(id==='kalkulator')  { renderKalkulator(); return; }
+  if(id==='investments') { renderInvPortfolio(); return; }
+  if(id==='settings')    { renderSettings(); return; }
+  closeDrawer();
 }
 
 function gocat(section, cat, el){
