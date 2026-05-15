@@ -699,11 +699,15 @@ function getKalkValue(subKey, ym) {
   const parts = subKey.split('__');
   if(parts.length < 2) return 0;
   const [cat, key] = parts;
-  const actual  = parseFloat(localStorage.getItem('fa_'+cat+'_'+key+'_'+ym)||'0')||0;
+  const actual = parseFloat(localStorage.getItem('fa_'+cat+'_'+key+'_'+ym)||'0')||0;
   if(actual) return actual;
   const planned = parseFloat(localStorage.getItem('fp_'+cat+'_'+key+'_'+ym)||'0')||0;
   if(planned) return planned;
-  return getDefault('actual', cat, key) || 0;
+  const defActual = getDefault('actual', cat, key);
+  if(defActual) return defActual;
+  const defPlanned = getDefault('planned', cat, key);
+  if(defPlanned) return defPlanned;
+  return 0;
 }
 
 function renderKalkulator() {
