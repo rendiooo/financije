@@ -1838,9 +1838,8 @@ async function pullFromCloud() {
     }
     console.log('[PULL] parsed keys:', Object.keys(data).length);
     if(data && typeof data === 'object' && Object.keys(data).length > 0) {
-      const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
-      Object.keys(localStorage)
-        .filter(k=>pfx.some(p=>k.startsWith(p)))
+      const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin'];
+      Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
         .forEach(k=>localStorage.removeItem(k));
       Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,v));
       const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
@@ -1864,7 +1863,7 @@ async function pushToCloud() {
   setSyncStatus('syncing', 'Spremanje...');
   try {
     const data = {};
-    const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_'];
+    const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin'];
     for(let i=0;i<localStorage.length;i++) {
       const k = localStorage.key(i);
       if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
