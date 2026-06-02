@@ -14,7 +14,7 @@
 <style>
 :root{
   --bg:#0F1117;--surface:#1A1D27;--border:#2A2D3A;--text:#E8EAF0;--muted:#6B7080;
-  --accent:#1E3A5F;--accent2:#2D5A8E;--green:#3DBE7A;--red:#E05252;--amber:#E8A838;
+  --accent:#111827;--accent2:#1E3A5F;--green:#3DBE7A;--red:#E05252;--amber:#E8A838;
   --sw:230px;--radius:12px;--rsm:8px;
   --shadow:0 1px 4px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
 
@@ -1664,13 +1664,15 @@ function renderDash(){
 
   // Track expanded categories
   if(!window._dashExpanded) window._dashExpanded = {};
+  renderDashTable();
+}
 
-  function toggleDashCat(cat) {
-    window._dashExpanded[cat] = !window._dashExpanded[cat];
-    renderDashTable();
-  }
+function toggleDashCat(cat) {
+  window._dashExpanded[cat] = !window._dashExpanded[cat];
+  renderDashTable();
+}
 
-  function renderDashTable() {
+function renderDashTable() {
     document.getElementById('dash-table').innerHTML=`
     <thead><tr>
       <th>Kategorija</th>
@@ -1711,8 +1713,6 @@ function renderDash(){
       }).join('') : '';
       return catRow + subRows;
     }).join('')}</tbody>`;
-  }
-  renderDashTable();
 }
 
 // ── DRAWER ──
