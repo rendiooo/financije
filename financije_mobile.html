@@ -13,20 +13,20 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#F2F0EB;--surface:#fff;--border:#E4E0D8;--text:#1A1916;--muted:#6B6860;
-  --accent:#1A3A2A;--accent2:#2D6A4F;--green:#2D9E6B;--red:#D94F3D;
+  --bg:#0F1117;--surface:#1A1D27;--border:#2A2D3A;--text:#E8EAF0;--muted:#6B7080;
+  --accent:#1E3A5F;--accent2:#2D5A8E;--green:#3DBE7A;--red:#E05252;--amber:#E8A838;
   --sw:230px;--radius:12px;--rsm:8px;
-  --shadow:0 1px 4px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+  --shadow:0 1px 4px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
 
-  /* table light theme */
-  --tb-bg:#fff;--tb-surface:#F7F5F0;--tb-border:#E4E0D8;
-  --tb-muted:#6B6860;--tb-text:#1A1916;
-  --tb-head:#F2F0EB;--tb-cat:#1A3A2A;--tb-cat-bg:#E8F0EC;
-  --tb-hover:#F7F5F0;--tb-input:#fff;
-  --tb-green:#2D9E6B;--tb-red:#D94F3D;
+  /* table dark theme */
+  --tb-bg:#1A1D27;--tb-surface:#22253A;--tb-border:#2A2D3A;
+  --tb-muted:#6B7080;--tb-text:#E8EAF0;
+  --tb-head:#0F1117;--tb-cat:#3DBE7A;--tb-cat-bg:#1A3A2A;
+  --tb-hover:#22253A;--tb-input:#22253A;
+  --tb-green:#3DBE7A;--tb-red:#E05252;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;color-scheme:dark}
 .layout{display:flex;min-height:100vh}
 
 /* ── MOBILE LAYOUT ── */
@@ -269,7 +269,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 
 
 /* ── PIN SCREEN ── */
-.pin-screen{position:fixed;inset:0;background:var(--accent);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .3s}
+.pin-screen{position:fixed;inset:0;background:#0F1117;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .3s}
 .pin-screen.hidden{opacity:0;pointer-events:none}
 .pin-logo{font-family:'DM Serif Display',serif;font-size:32px;font-weight:400;color:#fff;margin-bottom:8px}
 .pin-sub{font-size:13px;color:rgba(255,255,255,.45);margin-bottom:40px;letter-spacing:.5px}
@@ -277,7 +277,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);transition:all .15s}
 .pin-dot.filled{background:#fff;border-color:#fff}
 .pin-pad{display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(4,72px);gap:10px}
-.pin-btn{width:72px;height:72px;border-radius:50%;border:none;background:rgba(255,255,255,.1);color:#fff;font-size:22px;font-weight:400;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center}
+.pin-btn{width:72px;height:72px;border-radius:50%;border:none;background:rgba(255,255,255,.08);color:#E8EAF0;font-size:22px;font-weight:400;cursor:pointer;transition:all .15s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center}
 .pin-btn:hover{background:rgba(255,255,255,.2)}
 .pin-btn:active{background:rgba(255,255,255,.3);transform:scale(.95)}
 .pin-btn.empty{background:transparent;cursor:default;pointer-events:none}
@@ -1662,7 +1662,16 @@ function renderDash(){
     }
   });
 
-  document.getElementById('dash-table').innerHTML=`
+  // Track expanded categories
+  if(!window._dashExpanded) window._dashExpanded = {};
+
+  function toggleDashCat(cat) {
+    window._dashExpanded[cat] = !window._dashExpanded[cat];
+    renderDashTable();
+  }
+
+  function renderDashTable() {
+    document.getElementById('dash-table').innerHTML=`
     <thead><tr>
       <th>Kategorija</th>
       <th style="text-align:right">Planirano</th>
@@ -1673,16 +1682,37 @@ function renderDash(){
       const m=META[c], plan=catSum('planned',c), act=catSum('actual',c);
       const diff=m.income?(act-plan):(plan-act);
       const dc=diff>=0?'var(--green)':'var(--red)', ds=diff>=0?'+':'−';
-      return `<tr>
+      const isExp = window._dashExpanded[c];
+      const catRow = `<tr style="cursor:pointer" onclick="toggleDashCat('${c}')">
         <td style="padding:9px 0"><span style="display:inline-flex;align-items:center;gap:8px">
           <span style="width:8px;height:8px;border-radius:50%;background:${m.color};display:inline-block;flex-shrink:0"></span>
           ${m.icon} ${m.label}
+          <span style="font-size:11px;color:var(--muted)">${isExp?'▲':'▼'}</span>
         </span></td>
         <td style="text-align:right;color:${m.income?'var(--green)':'var(--text)'}">${plan>0?fmtFull(plan):'—'}</td>
         <td style="text-align:right;color:${m.income?'var(--green)':'var(--red)'}">${act>0?fmtFull(act):'—'}</td>
         <td style="text-align:right;color:${dc};font-weight:600">${ds}${fmtFull(Math.abs(diff))}</td>
       </tr>`;
+      const subRows = isExp ? SUBCATS[c].map(sub=>{
+        const sp=getDB('planned',c,sub.key), sa=getDB('actual',c,sub.key);
+        const sd=m.income?(sa-sp):(sp-sa);
+        const sdc=sd>=0?'var(--green)':'var(--red)', sds=sd>=0?'+':'−';
+        return `<tr style="background:var(--tb-surface)">
+          <td style="padding:7px 0 7px 28px;font-size:13px;color:var(--muted)">
+            <span style="display:inline-flex;align-items:center;gap:6px">
+              <span style="width:5px;height:5px;border-radius:50%;background:${sub.color};display:inline-block"></span>
+              ${sub.label}
+            </span>
+          </td>
+          <td style="text-align:right;font-size:13px;color:var(--muted)">${sp>0?fmtFull(sp):'—'}</td>
+          <td style="text-align:right;font-size:13px;color:${sa>0?(m.income?'var(--green)':'var(--red)'):'var(--muted)'}">${sa>0?fmtFull(sa):'—'}</td>
+          <td style="text-align:right;font-size:13px;color:${sdc}">${sp>0||sa>0?sds+fmtFull(Math.abs(sd)):'—'}</td>
+        </tr>`;
+      }).join('') : '';
+      return catRow + subRows;
     }).join('')}</tbody>`;
+  }
+  renderDashTable();
 }
 
 // ── DRAWER ──
