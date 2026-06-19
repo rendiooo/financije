@@ -99,7 +99,7 @@ html,body{height:100%;overflow:hidden}
 .bc{font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
 
 /* metrics */
-.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px;margin-bottom:22px}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
 .mc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
 .mc-l{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.4px;text-transform:uppercase;margin-bottom:7px}
 .mc-v{font-size:21px;font-weight:600;letter-spacing:-.5px}
@@ -301,6 +301,33 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 .kalk-total-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0 0;margin-top:8px;border-top:2px solid var(--border)}
 .kalk-total-label{font-size:14px;font-weight:700}
 
+@media (min-width:1400px){
+  .main{padding:36px clamp(32px,4vw,80px)}
+}
+
+/* Narrower windows — shrink sidebar, tighten spacing */
+@media (max-width:1100px){
+  :root{--sw:200px}
+  .main{padding:24px 20px}
+  .metrics{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .g2{gap:14px}
+}
+@media (max-width:900px){
+  :root{--sw:0px}
+  .sb{transform:translateX(-100%);transition:transform .25s;z-index:300}
+  .sb.open{transform:translateX(0)}
+  .main{margin-left:0;padding:20px 16px}
+  .g2{grid-template-columns:1fr}
+  .mobile-menu-btn{display:flex !important}
+}
+@media (max-width:600px){
+  .main{padding:16px 12px}
+  .metrics{grid-template-columns:1fr 1fr;gap:8px}
+  .mc{padding:12px 14px}
+  .mc-v{font-size:18px}
+  .ph h2{font-size:22px}
+}
+
 /* period picker */
 .period-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px}
 .period-bar select{width:auto;padding:6px 10px;font-size:13px;font-weight:500;border:1px solid var(--border);border-radius:var(--rsm);background:var(--surface);color:var(--text);cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6860' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
@@ -340,6 +367,12 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <div class="pin-forgot" onclick="pinForgot()">Zaboravili ste PIN?</div>
 </div>
 
+<button class="mobile-menu-btn" onclick="document.querySelector('.sb').classList.toggle('open')"
+  style="display:none;position:fixed;top:14px;left:14px;z-index:301;width:38px;height:38px;border-radius:8px;background:var(--accent);border:none;color:#fff;align-items:center;justify-content:center;cursor:pointer">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px">
+    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+</button>
 <div class="layout" id="app-layout" style="display:none">
 
 <!-- ════════════════ HEADER + DRAWER ════════════════ -->
@@ -576,6 +609,8 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 // ══════════════════════════════════════════════
 // CONFIG
@@ -1094,10 +1129,19 @@ function hasMonthlyValue(section, cat, subkey) {
 }
 function setDB(section, cat, subkey, val) {
   setVal(section==='planned'?'fp':'fa', cat, subkey, val);
+  scheduleAutoPush();
 }
 
+let _autoPushTimeout = null;
 function save() {
   localStorage.setItem('finv', JSON.stringify(DB.investments));
+  scheduleAutoPush();
+}
+function scheduleAutoPush() {
+  clearTimeout(_autoPushTimeout);
+  _autoPushTimeout = setTimeout(() => {
+    if(typeof pushToCloud === 'function') pushToCloud();
+  }, 800);
 }
 
 // ══════════════════════════════════════════════
@@ -1825,13 +1869,23 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ══════════════════════════════════════════════
-// GOOGLE SHEETS SYNC
-// Pull: via public CSV URL (no CORS issues)
-// Push: via Apps Script no-cors POST
+// FIREBASE FIRESTORE — real-time sync
 // ══════════════════════════════════════════════
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxPsV2UqKQ0DMm67GTHc3Ejd7jJURTz_Qh02MX893VtgViBa_JoJA2nBZEXLiuC4Tdt/exec';
-const CSV_URL    = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTEpqITGYSozaW2yqnVitsNFZ-bnAxVIBYw_oKTaWDySyUsUmpI04ysxmEfSO2jkOopM-Txt9srDB06/pub?output=csv';
+const firebaseConfig = {
+  apiKey: "AIzaSyBvqSdzGE3W-ZWnH623r_gxP3G0ojOBYMw",
+  authDomain: "mm-financije.firebaseapp.com",
+  projectId: "mm-financije",
+  storageBucket: "mm-financije.firebasestorage.app",
+  messagingSenderId: "1089843046211",
+  appId: "1:1089843046211:web:7eae48562dc0a923ef31f6"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const DOC_REF = db.collection('financije').doc('shared');
+
 let isSyncing = false;
+let suppressNextSnapshot = false;
+let firestoreUnsub = null;
 
 function setSyncStatus(state, msg) {
   const dot = document.getElementById('sync-dot');
@@ -1841,84 +1895,95 @@ function setSyncStatus(state, msg) {
   txt.textContent = msg;
 }
 
-// ── PULL via public CSV ───────────────────────
-async function pullFromCloud() {
-  setSyncStatus('syncing', 'Učitavanje...');
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(CSV_URL + '&t=' + Date.now(), {
-      cache: 'no-store',
-      signal: controller.signal
-    });
-    clearTimeout(timer);
-    const text = await res.text();
-    console.log('[PULL] CSV length:', text.length, 'starts:', text.slice(0,50));
-    // Parse Google Sheets CSV — wraps JSON in "" and escapes inner quotes as ""
-    let raw = text.trim();
-    if(raw.startsWith('"') && raw.endsWith('"')) {
-      raw = raw.slice(1, -1).replace(/""/g, '"');
-    }
-    // Also handle escaped backslashes from nested JSON
-    let data;
-    try { data = JSON.parse(raw); } catch(pe) {
-      console.error('[PULL] JSON parse error:', pe.message, 'raw[:100]:', raw.slice(0,100));
-      setSyncStatus('err', 'Parse error: ' + pe.message.slice(0,40));
-      return false;
-    }
-    console.log('[PULL] parsed keys:', Object.keys(data).length);
-    if(data && typeof data === 'object' && Object.keys(data).length > 0) {
-      const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin'];
-      Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
-        .forEach(k=>localStorage.removeItem(k));
-      Object.entries(data).forEach(([k,v])=>localStorage.setItem(k,v));
-      const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
-      setSyncStatus('ok', 'Učitano u ' + t);
-      return true;
-    } else {
-      setSyncStatus('ok', 'Nema podataka');
-      return false;
-    }
-  } catch(e) {
-    console.warn('Pull error:', e.message || e);
-    setSyncStatus('err', 'Greška: ' + (e.message||'').slice(0,30));
-    return false;
+function collectLocalData() {
+  const data = {};
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin'];
+  for(let i=0;i<localStorage.length;i++) {
+    const k = localStorage.key(i);
+    if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
   }
+  return data;
 }
 
-// ── PUSH via Apps Script no-cors ─────────────
+function applyCloudData(data) {
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin'];
+  Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
+    .forEach(k=>localStorage.removeItem(k));
+  Object.entries(data).forEach(([k,v])=>{ if(k!=='_updated') localStorage.setItem(k,v); });
+}
+
+// ── PUSH — write to Firestore ──
 async function pushToCloud() {
   if(isSyncing) return;
   isSyncing = true;
   setSyncStatus('syncing', 'Spremanje...');
   try {
-    const data = {};
-    const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin'];
-    for(let i=0;i<localStorage.length;i++) {
-      const k = localStorage.key(i);
-      if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
-    }
-    await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'text/plain;charset=utf-8'},
-      body: JSON.stringify({action:'write', data}),
-      mode: 'no-cors',
-    });
+    const data = collectLocalData();
+    data._updated = Date.now();
+    suppressNextSnapshot = true;
+    await DOC_REF.set(data);
     const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
     setSyncStatus('ok', 'Spremljeno u ' + t);
   } catch(e) {
-    setSyncStatus('err', 'Greška pri spremanju');
+    console.error('[FIRESTORE] push error', e);
+    setSyncStatus('err', 'Greška: ' + (e.message||'').slice(0,30));
   } finally {
     isSyncing = false;
   }
 }
 
-// ── MANUAL SAVE button ────────────────────────
+// ── PULL — one-time read ──
+async function pullFromCloud() {
+  setSyncStatus('syncing', 'Učitavanje...');
+  try {
+    const snap = await DOC_REF.get();
+    if(snap.exists) {
+      applyCloudData(snap.data());
+      const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
+      setSyncStatus('ok', 'Učitano u ' + t);
+      return true;
+    } else {
+      setSyncStatus('ok', 'Nema podataka u oblaku');
+      return false;
+    }
+  } catch(e) {
+    console.error('[FIRESTORE] pull error', e);
+    setSyncStatus('err', 'Greška: ' + (e.message||'').slice(0,30));
+    return false;
+  }
+}
+
+// ── REAL-TIME LISTENER — auto-updates when other device pushes ──
+function startRealtimeSync() {
+  if(firestoreUnsub) return; // already listening
+  firestoreUnsub = DOC_REF.onSnapshot(snap => {
+    if(suppressNextSnapshot) { suppressNextSnapshot = false; return; }
+    if(!snap.exists) return;
+    applyCloudData(snap.data());
+    DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
+    bucketCfg = loadBucketConfig();
+    reloadAndRender();
+    const t = new Date().toLocaleTimeString('hr-HR',{hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('ok', 'Ažurirano u ' + t + ' (uživo)');
+  }, err => {
+    console.error('[FIRESTORE] listener error', err);
+    setSyncStatus('err', 'Veza prekinuta');
+  });
+}
+
+// ── MANUAL BUTTONS ──
 async function syncNow() {
   await pushToCloud();
 }
+async function osvjezi() {
+  const ok = await pullFromCloud();
+  if(ok) {
+    DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
+    bucketCfg = loadBucketConfig();
+    reloadAndRender();
+  }
+}
 
-// ── PULL + RENDER ─────────────────────────────
 function reloadAndRender() {
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
@@ -1928,56 +1993,30 @@ function reloadAndRender() {
   if(id==='dashboard') renderDash();
   else if(id==='cat'&&typeof _sec!=='undefined') renderCatPage(_sec,_cat);
   else if(id==='investments') renderInvPortfolio();
+  else if(id==='kalkulator') renderKalkulator();
 }
 
-async function pullAndRender() {
-  const ok = await pullFromCloud();
-  if(ok) {
-    DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
-    bucketCfg = loadBucketConfig();
-    reloadAndRender();
-  }
-}
-
-// ── INIT — after PIN ──────────────────────────
-function initApp() {
-  // Hide disabled portfolios in sidebar
-  const cfg2 = loadPortConfig();
-  Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
-    if(cfg2[key] === false) {
-      document.querySelectorAll('.nc').forEach(function(el) {
-        if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
-          el.style.display = 'none';
-      });
-    }
-  });
-  initWithSync();
-}
-
+// ── INIT — pull once after PIN, then start real-time listener ──
 async function initWithSync() {
-  // Always start on current month/year
   const _now = new Date();
   selYear  = _now.getFullYear();
   selMonth = _now.getMonth() + 1;
   testMode = false;
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
-  // Pull data from cloud
-  const ok = await pullFromCloud();
+  await waitForLayout();
+  await pullFromCloud();
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
-  // Wait until layout is actually visible and has dimensions
-  await waitForLayout();
   try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
+  startRealtimeSync();
 }
 
 function waitForLayout() {
   return new Promise(resolve => {
     const layout = document.getElementById('app-layout');
     if(!layout) { resolve(); return; }
-    // Check if already visible with dimensions
     function check() {
       if(layout.offsetWidth > 0 && layout.style.display !== 'none') {
-        // Extra frame for Chart.js canvas sizing
         requestAnimationFrame(() => requestAnimationFrame(resolve));
       } else {
         setTimeout(check, 50);
