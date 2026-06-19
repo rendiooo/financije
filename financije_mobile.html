@@ -206,6 +206,18 @@ input:focus,select:focus{border-color:var(--accent2);background:#fff}
 .set-cat-icon{font-size:16px}
 .set-row{display:flex;align-items:center;gap:10px;padding:8px 0 8px 4px;border-bottom:0.5px solid var(--border)}
 .set-row:last-child{border-bottom:none}
+
+/* Mobile stacked settings row */
+.set-row-block{padding:14px 0;border-bottom:0.5px solid var(--border)}
+.set-row-block:last-child{border-bottom:none}
+.set-row-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.set-defaults{display:flex;gap:8px;margin-bottom:10px}
+.set-def-group{flex:1;display:flex;flex-direction:column;gap:4px}
+.set-def-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.set-def-inp{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rsm);font-family:inherit;font-size:14px;background:var(--bg);color:var(--text);text-align:right;outline:none;-webkit-appearance:none;box-sizing:border-box}
+.set-def-inp:focus{border-color:var(--accent2);background:#fff}
+.set-radios{display:flex;gap:6px;flex-wrap:wrap}
+.set-radios .set-radio-btn{flex:1;min-width:0;text-align:center;padding:8px 6px;font-size:12px}
 .set-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .set-row-label{font-size:14px;color:var(--text);flex:1;min-width:0}
 .set-radios{display:flex;gap:4px;flex-shrink:0}
@@ -804,6 +816,7 @@ function kalkSetRow(personId, idx, field, value) {
   const cfg = loadKalkConfig();
   cfg[personId].rows[idx][field] = value;
   saveKalkConfig(cfg);
+  scheduleAutoPush();
 }
 
 // ══════════════════════════════════════════════
@@ -825,6 +838,7 @@ function toggleYearLock(year) {
   else locked.splice(idx, 1);
   localStorage.setItem(LOCK_KEY, JSON.stringify(locked));
   renderSettings();
+  scheduleAutoPush();
 }
 
 // ══════════════════════════════════════════════
@@ -865,6 +879,7 @@ function loadPocetnoStanje() {
 }
 function savePocetnoStanje(val) {
   localStorage.setItem(POCETNO_KEY, parseFloat(val) || 0);
+  scheduleAutoPush();
 }
 
 function getBucket(cat, subkey) {
@@ -947,16 +962,20 @@ function renderSettings() {
       }).join('');
       const defInputs = SECTIONS.map(sec => {
         const defVal = getDefault(sec.key, cat, sub.key);
-        return `<input type="number" class="set-def-inp" placeholder="—"
-          value="${defVal > 0 ? defVal : ''}"
-          title="Zadana vrijednost za ${sec.label}"
-          onchange="setDefault('${sec.key}','${cat}','${sub.key}',this.value)"
-          min="0" step="0.01">`;
+        return `<div class="set-def-group">
+          <span class="set-def-label">${sec.label}</span>
+          <input type="number" class="set-def-inp" placeholder="—"
+            value="${defVal > 0 ? defVal : ''}"
+            onchange="setDefault('${sec.key}','${cat}','${sub.key}',this.value)"
+            min="0" step="0.01">
+        </div>`;
       }).join('');
-      return `<div class="set-row">
-        <div class="set-dot" style="background:${sub.color}"></div>
-        <span class="set-row-label">${sub.label}</span>
-        <div class="set-defaults">${defInputs}</div>
+      return `<div class="set-row-block">
+        <div class="set-row-top">
+          <div class="set-dot" style="background:${sub.color}"></div>
+          <span class="set-row-label">${sub.label}</span>
+        </div>
+        <div class="set-defaults" id="radios_${cat}__${sub.key}_def">${defInputs}</div>
         <div class="set-radios" id="radios_${cat}__${sub.key}">${btns}</div>
       </div>`;
     }).join('');
@@ -965,12 +984,6 @@ function renderSettings() {
       <div class="set-cat-hdr">
         <span class="set-cat-icon">${m.icon}</span>
         <span class="set-cat-label">${m.label}</span>
-      </div>
-      <div class="set-col-hdr">
-        <span style="font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px">Stavka</span>
-        <div class="set-col-labels">
-          ${BUCKETS.map(b=>`<span class="set-col-lbl">${b.label}</span>`).join('')}
-        </div>
       </div>
       ${rows}
     </div>`;
@@ -985,11 +998,13 @@ function savePin() {
   document.getElementById('pin-new').value = '';
   document.getElementById('pin-set-msg').style.color = 'var(--green)';
   document.getElementById('pin-set-msg').textContent = '✓ PIN je postavljen.';
+  scheduleAutoPush();
 }
 function removePin() {
   localStorage.removeItem(PIN_KEY);
     document.getElementById('pin-set-msg').style.color = 'var(--amber)';
   document.getElementById('pin-set-msg').textContent = 'PIN je uklonjen — aplikacija se otvara bez lozinke.';
+  scheduleAutoPush();
 }
 
 function togglePortfolio(key, enabled) {
@@ -1001,6 +1016,7 @@ function togglePortfolio(key, enabled) {
     if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
       el.style.display = enabled ? '' : 'none';
   });
+  scheduleAutoPush();
 }
 
 function setBucket(cat, key, bucket, btn) {
@@ -1015,6 +1031,7 @@ function setBucket(cat, key, bucket, btn) {
     });
     btn.className = 'set-radio-btn ' + (BUCKET_CLS[bucket] || '');
   }
+  scheduleAutoPush();
 }
 
 const INVC = {Dionice:'#2A6BAD',ETF:'#2D9E6B',Obveznice:'#5B7ED6',Nekretnine:'#C47A1E',Kriptovalute:'#D94F3D','Zlato/Roba':'#B8860B',Štednja:'#0EA5A0',Ostalo:'#888'};
@@ -1100,6 +1117,7 @@ function getDefault(section, cat, subkey) {
 function setDefault(section, cat, subkey, val) {
   const pfx = section==='planned'?'fp':'fa';
   localStorage.setItem(`${pfx}_${cat}_${subkey}_default`, parseFloat(val) || 0);
+  scheduleAutoPush();
 }
 function hasMonthlyValue(section, cat, subkey) {
   const pfx = section==='planned'?'fp':'fa';
@@ -1305,7 +1323,7 @@ const INV_PORTFOLIOS = INV_PORTFOLIOS_DEF;
 function invLoad(key)  { try { return JSON.parse(localStorage.getItem('inv2_'+key)||'[]'); } catch(e){return[];} }
 function invSave(key,d){ localStorage.setItem('inv2_'+key, JSON.stringify(d)); }
 function priceLoad(key){ return parseFloat(localStorage.getItem('invprice_'+key)||'0')||0; }
-function priceSave(key,v){ localStorage.setItem('invprice_'+key, v); }
+function priceSave(key,v){ localStorage.setItem('invprice_'+key, v); scheduleAutoPush(); }
 
 let currentPortfolio = 'xau_banka';
 

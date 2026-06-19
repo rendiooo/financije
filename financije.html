@@ -779,6 +779,7 @@ function kalkSetRow(personId, idx, field, value) {
   const cfg = loadKalkConfig();
   cfg[personId].rows[idx][field] = value;
   saveKalkConfig(cfg);
+  scheduleAutoPush();
 }
 
 // ══════════════════════════════════════════════
@@ -800,6 +801,7 @@ function toggleYearLock(year) {
   else locked.splice(idx, 1);
   localStorage.setItem(LOCK_KEY, JSON.stringify(locked));
   renderSettings();
+  scheduleAutoPush();
 }
 
 // ══════════════════════════════════════════════
@@ -840,6 +842,7 @@ function loadPocetnoStanje() {
 }
 function savePocetnoStanje(val) {
   localStorage.setItem(POCETNO_KEY, parseFloat(val) || 0);
+  scheduleAutoPush();
 }
 
 function getBucket(cat, subkey) {
@@ -969,11 +972,13 @@ function savePin() {
   document.getElementById('pin-new').value = '';
   document.getElementById('pin-set-msg').style.color = 'var(--green)';
   document.getElementById('pin-set-msg').textContent = '✓ PIN je postavljen.';
+  scheduleAutoPush();
 }
 function removePin() {
   localStorage.removeItem(PIN_KEY);
     document.getElementById('pin-set-msg').style.color = 'var(--amber)';
   document.getElementById('pin-set-msg').textContent = 'PIN je uklonjen — aplikacija se otvara bez lozinke.';
+  scheduleAutoPush();
 }
 
 function togglePortfolio(key, enabled) {
@@ -981,6 +986,7 @@ function togglePortfolio(key, enabled) {
   cfg[key] = enabled;
   savePortConfig(cfg);
   renderSettings();
+  scheduleAutoPush();
   // update sidebar visibility
   const navEl = document.querySelector(`.nc[onclick*="goInv('${key}')"]`);
   if(navEl) navEl.style.display = enabled ? '' : 'none';
@@ -998,6 +1004,7 @@ function setBucket(cat, key, bucket, btn) {
     });
     btn.className = 'set-radio-btn ' + (BUCKET_CLS[bucket] || '');
   }
+  scheduleAutoPush();
 }
 
 const INVC = {Dionice:'#2A6BAD',ETF:'#2D9E6B',Obveznice:'#5B7ED6',Nekretnine:'#C47A1E',Kriptovalute:'#D94F3D','Zlato/Roba':'#B8860B',Štednja:'#0EA5A0',Ostalo:'#888'};
@@ -1061,6 +1068,7 @@ function getDefault(section, cat, subkey) {
 function setDefault(section, cat, subkey, val) {
   const pfx = section==='planned'?'fp':'fa';
   localStorage.setItem(defaultKey(pfx, cat, subkey), parseFloat(val) || 0);
+  scheduleAutoPush();
 }
 function hasMonthlyValue(section, cat, subkey) {
   const pfx = section==='planned'?'fp':'fa';
@@ -1296,7 +1304,7 @@ const INV_PORTFOLIOS = INV_PORTFOLIOS_DEF; // kept for compatibility — use get
 function invLoad(key)  { try { return JSON.parse(localStorage.getItem('inv2_'+key)||'[]'); } catch(e){return[];} }
 function invSave(key,d){ localStorage.setItem('inv2_'+key, JSON.stringify(d)); }
 function priceLoad(key){ return parseFloat(localStorage.getItem('invprice_'+key)||'0')||0; }
-function priceSave(key,v){ localStorage.setItem('invprice_'+key, v); }
+function priceSave(key,v){ localStorage.setItem('invprice_'+key, v); scheduleAutoPush(); }
 
 let currentPortfolio = 'xau_banka';
 
