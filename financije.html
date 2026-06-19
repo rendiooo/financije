@@ -715,6 +715,8 @@ function renderKalkulator() {
     {id:'matija', name:'Matija', color:'#2A6BAD'},
   ];
 
+  let totalUplata = 0;
+
   const cards = persons.map(p => {
     const rows = cfg[p.id].rows;
     let result = 0;
@@ -730,6 +732,7 @@ function renderKalkulator() {
       </div>`;
     }).join('');
 
+    totalUplata += result;
     const resColor = result >= 0 ? 'var(--green)' : 'var(--red)';
     return `<div class="card" style="border-top:3px solid ${p.color};margin-bottom:16px">
       <div style="font-size:16px;font-weight:700;margin-bottom:12px">${p.name}</div>
@@ -741,9 +744,17 @@ function renderKalkulator() {
     </div>`;
   }).join('');
 
+  const totalColor = totalUplata >= 0 ? 'var(--green)' : 'var(--red)';
+
   body.innerHTML = `
     <div style="font-size:12px;color:var(--muted);margin-bottom:16px">
       Podatci iz stvarnih troškova — <strong>${periodLabel}</strong>
+    </div>
+    <div class="card" style="border:1.5px solid ${totalColor};margin-bottom:16px;background:linear-gradient(135deg, var(--surface), var(--bg))">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:15px;font-weight:700">💰 Ukupno na zajednički račun</span>
+        <span style="font-size:26px;font-weight:700;color:${totalColor}">${totalUplata>=0?'+':'−'}${fmtFull(Math.abs(totalUplata))}</span>
+      </div>
     </div>
     ${cards}`;
 }
@@ -1304,7 +1315,58 @@ const INV_PORTFOLIOS = INV_PORTFOLIOS_DEF; // kept for compatibility — use get
 function invLoad(key)  { try { return JSON.parse(localStorage.getItem('inv2_'+key)||'[]'); } catch(e){return[];} }
 function invSave(key,d){ localStorage.setItem('inv2_'+key, JSON.stringify(d)); }
 function priceLoad(key){ return parseFloat(localStorage.getItem('invprice_'+key)||'0')||0; }
-function priceSave(key,v){ localStorage.setItem('invprice_'+key, v); scheduleAutoPush(); }
+
+// ── LINKED PRICE GROUPS ──
+// Portfolios that should always share the same price (e.g. same gold source)
+const PRICE_LINK_KEY = 'price_link_groups';
+
+function getPriceLinkGroups() {
+  try {
+    const s = localStorage.getItem(PRICE_LINK_KEY);
+    return s ? JSON.parse(s) : [];
+  } catch(e) { return []; }
+}
+function savePriceLinkGroups(groups) {
+  localStorage.setItem(PRICE_LINK_KEY, JSON.stringify(groups));
+  scheduleAutoPush();
+}
+function getLinkedKeys(key) {
+  const groups = getPriceLinkGroups();
+  const grp = groups.find(g => g.includes(key));
+  return grp || [key];
+}
+function isPriceLinked(key) {
+  return getPriceLinkGroups().some(g => g.includes(key));
+}
+function isLinkedPair(keyA, keyB) {
+  const groups = getPriceLinkGroups();
+  return groups.some(g => g.includes(keyA) && g.includes(keyB));
+}
+
+function togglePriceLink(keyA, keyB) {
+  let groups = getPriceLinkGroups();
+  // Find existing group containing either key
+  let grp = groups.find(g => g.includes(keyA) || g.includes(keyB));
+  if(grp) {
+    // Already linked together? unlink
+    if(grp.includes(keyA) && grp.includes(keyB)) {
+      groups = groups.filter(g => g !== grp);
+    } else {
+      // extend group
+      if(!grp.includes(keyA)) grp.push(keyA);
+      if(!grp.includes(keyB)) grp.push(keyB);
+    }
+  } else {
+    groups.push([keyA, keyB]);
+  }
+  savePriceLinkGroups(groups);
+}
+
+function priceSave(key, v) {
+  const linked = getLinkedKeys(key);
+  linked.forEach(k => localStorage.setItem('invprice_'+k, v));
+  scheduleAutoPush();
+}
 
 let currentPortfolio = 'xau_banka';
 
@@ -1323,14 +1385,27 @@ function renderInvPortfolio() {
   const today_val = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
 
   // ── Current price card ──
+  const linkedToOthers = getLinkedKeys(key).filter(k => k !== key);
+  const otherPortfolios = Object.keys(INV_PORTFOLIOS).filter(k => k !== key);
+
   document.getElementById('inv-price-body').innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;max-width:380px">
+    <div style="display:flex;align-items:center;gap:12px;max-width:380px;margin-bottom:10px">
       <label class="fl" style="white-space:nowrap;margin-bottom:0">${p.priceLabel}</label>
       <input type="number" id="inv-cur-price" value="${curPrice||''}" placeholder="0.00" min="0" step="0.01"
         style="flex:1"
         onchange="priceSave('${key}',this.value);renderInvPortfolio()"
         onblur="if(this.value)priceSave('${key}',this.value);renderInvPortfolio()">
       <span style="font-size:14px;color:var(--muted)">€</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted)">
+      ${otherPortfolios.map(ok => {
+        const linked = isLinkedPair(key, ok);
+        const okLabel = INV_PORTFOLIOS[ok].label;
+        return `<label style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;cursor:pointer;user-select:none">
+          <input type="checkbox" ${linked?'checked':''} onchange="togglePriceLink('${key}','${ok}');renderInvPortfolio()" style="width:14px;height:14px;cursor:pointer">
+          🔗 Ista cijena kao ${okLabel}
+        </label>`;
+      }).join('')}
     </div>`;
 
   // ── Form ──
