@@ -305,21 +305,6 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   .main{padding:36px clamp(32px,4vw,80px)}
 }
 
-/* Narrower windows — shrink sidebar, tighten spacing */
-@media (max-width:1100px){
-  :root{--sw:200px}
-  .main{padding:24px 20px}
-  .metrics{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-  .g2{gap:14px}
-}
-@media (max-width:900px){
-  :root{--sw:0px}
-  .sb{transform:translateX(-100%);transition:transform .25s;z-index:300}
-  .sb.open{transform:translateX(0)}
-  .main{margin-left:0;padding:20px 16px}
-  .g2{grid-template-columns:1fr}
-  .mobile-menu-btn{display:flex !important}
-}
 @media (max-width:600px){
   .main{padding:16px 12px}
   .metrics{grid-template-columns:1fr 1fr;gap:8px}
@@ -367,12 +352,6 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <div class="pin-forgot" onclick="pinForgot()">Zaboravili ste PIN?</div>
 </div>
 
-<button class="mobile-menu-btn" onclick="document.querySelector('.sb').classList.toggle('open')"
-  style="display:none;position:fixed;top:14px;left:14px;z-index:301;width:38px;height:38px;border-radius:8px;background:var(--accent);border:none;color:#fff;align-items:center;justify-content:center;cursor:pointer">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px">
-    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-  </svg>
-</button>
 <div class="layout" id="app-layout" style="display:none">
 
 <!-- ════════════════ HEADER + DRAWER ════════════════ -->
@@ -1997,6 +1976,19 @@ function reloadAndRender() {
 }
 
 // ── INIT — pull once after PIN, then start real-time listener ──
+function initApp() {
+  const cfg2 = loadPortConfig();
+  Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
+    if(cfg2[key] === false) {
+      document.querySelectorAll('.nc').forEach(function(el) {
+        if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
+          el.style.display = 'none';
+      });
+    }
+  });
+  initWithSync();
+}
+
 async function initWithSync() {
   const _now = new Date();
   selYear  = _now.getFullYear();

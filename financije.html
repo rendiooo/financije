@@ -1906,6 +1906,19 @@ function reloadAndRender() {
 }
 
 // ── INIT — pull once after PIN, then start real-time listener ──
+function initApp() {
+  const cfg2 = loadPortConfig();
+  Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
+    if(cfg2[key] === false) {
+      document.querySelectorAll('.nc').forEach(function(el) {
+        if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
+          el.style.display = 'none';
+      });
+    }
+  });
+  initWithSync();
+}
+
 async function initWithSync() {
   const _now = new Date();
   selYear  = _now.getFullYear();
