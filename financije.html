@@ -291,6 +291,16 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   .ph h2{font-size:22px}
 }
 
+
+/* CRUD buttons */
+.crud-btn{background:none;border:none;cursor:pointer;font-size:13px;padding:4px 6px;border-radius:6px;opacity:.6;transition:opacity .15s;flex-shrink:0}
+.crud-btn:hover{opacity:1;background:var(--bg)}
+.crud-del:hover{background:rgba(224,82,82,.15)}
+.crud-add-btn{display:block;width:100%;margin-top:10px;padding:10px;border:1.5px dashed var(--border);border-radius:var(--rsm);background:transparent;color:var(--muted);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.crud-add-btn:hover{border-color:var(--accent2);color:var(--accent2);background:var(--bg)}
+.crud-add-main{margin-top:16px;margin-bottom:8px;padding:14px;font-size:14px;border-color:var(--green);color:var(--green)}
+.crud-add-main:hover{background:rgba(61,190,122,.1)}
+
 /* period picker */
 .period-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px}
 .period-bar select{width:auto;padding:6px 10px;font-size:13px;font-weight:500;border:1px solid var(--border);border-radius:var(--rsm);background:var(--surface);color:var(--text);cursor:pointer;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6860' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:28px}
@@ -565,9 +575,9 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 // ══════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════
-const CATS = ['prihodi','rezije','kucanstvo','automobili','pretplate','izlasci','stednja','zajednicki'];
+const CATS_DEFAULT = ['prihodi','rezije','kucanstvo','automobili','pretplate','izlasci','stednja','zajednicki'];
 
-const META = {
+const META_DEFAULT = {
   prihodi:    {label:'Prihodi',           icon:'💰', color:'#2D9E6B', income:true },
   rezije:     {label:'Režije i krediti',  icon:'💡', color:'#2A6BAD', income:false},
   kucanstvo:  {label:'Kućanstvo',         icon:'🏠', color:'#8B5CF6', income:false},
@@ -578,7 +588,7 @@ const META = {
   zajednicki: {label:'Uplata na zajednički račun', icon:'🏛', color:'#2D9E6B', income:false},
 };
 
-const SUBCATS = {
+const SUBCATS_DEFAULT = {
   prihodi: [
     {key:'placa_matea',   label:'Plaća Matea',         color:'#2D9E6B'},
     {key:'bonus_matea',   label:'Bonus Matea',          color:'#1A9490'},
@@ -640,6 +650,112 @@ const SUBCATS = {
     {key:'zajednicki_uplata', label:'Uplata na zajednički račun', color:'#2D9E6B'},
   ],
 };
+
+// ══════════════════════════════════════════════
+// DYNAMIC CATEGORY/SUBCATEGORY SYSTEM
+// Allows adding/renaming/removing cats, subcats, portfolios from the app
+// ══════════════════════════════════════════════
+const STRUCT_KEY = 'app_structure_v1';
+
+function loadStructure() {
+  try {
+    const s = localStorage.getItem(STRUCT_KEY);
+    if(s) {
+      const parsed = JSON.parse(s);
+      return {
+        CATS: parsed.CATS || CATS_DEFAULT.slice(),
+        META: parsed.META || JSON.parse(JSON.stringify(META_DEFAULT)),
+        SUBCATS: parsed.SUBCATS || JSON.parse(JSON.stringify(SUBCATS_DEFAULT)),
+      };
+    }
+  } catch(e) { console.warn('loadStructure error', e); }
+  return {
+    CATS: CATS_DEFAULT.slice(),
+    META: JSON.parse(JSON.stringify(META_DEFAULT)),
+    SUBCATS: JSON.parse(JSON.stringify(SUBCATS_DEFAULT)),
+  };
+}
+
+function saveStructure(struct) {
+  localStorage.setItem(STRUCT_KEY, JSON.stringify(struct));
+  if(typeof scheduleAutoPush === 'function') scheduleAutoPush();
+}
+
+// Live mutable structure — loaded once, kept in sync with localStorage
+let _struct = loadStructure();
+let CATS = _struct.CATS;
+let META = _struct.META;
+let SUBCATS = _struct.SUBCATS;
+
+function refreshStructure() {
+  _struct = loadStructure();
+  CATS = _struct.CATS;
+  META = _struct.META;
+  SUBCATS = _struct.SUBCATS;
+}
+
+function slugify(text) {
+  return text.toLowerCase()
+    .replace(/[čć]/g,'c').replace(/[š]/g,'s').replace(/[ž]/g,'z').replace(/[đ]/g,'d')
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || ('item_'+Date.now());
+}
+
+const STRUCT_COLORS = ['#2D9E6B','#2A6BAD','#8B5CF6','#C47A1E','#1A9490','#D94F3D','#5B7ED6','#B8860B','#71717A','#E8A838'];
+function nextColor(usedColors) {
+  const avail = STRUCT_COLORS.filter(c => !usedColors.includes(c));
+  return avail.length ? avail[0] : STRUCT_COLORS[Math.floor(Math.random()*STRUCT_COLORS.length)];
+}
+
+// ── ADD ──
+function addCategory(label, icon, isIncome) {
+  const key = slugify(label);
+  if(CATS.includes(key)) { alert('Kategorija s tim nazivom već postoji.'); return null; }
+  CATS.push(key);
+  META[key] = {label, icon: icon||'📂', color: nextColor(Object.values(META).map(m=>m.color)), income: !!isIncome};
+  SUBCATS[key] = [];
+  saveStructure({CATS, META, SUBCATS});
+  return key;
+}
+
+function addSubcat(cat, label) {
+  if(!SUBCATS[cat]) return null;
+  const key = slugify(label);
+  if(SUBCATS[cat].some(s => s.key === key)) { alert('Podkategorija s tim nazivom već postoji.'); return null; }
+  const usedColors = SUBCATS[cat].map(s=>s.color);
+  SUBCATS[cat].push({key, label, color: nextColor(usedColors)});
+  saveStructure({CATS, META, SUBCATS});
+  return key;
+}
+
+function renameCategory(cat, newLabel) {
+  if(!META[cat]) return;
+  META[cat].label = newLabel;
+  saveStructure({CATS, META, SUBCATS});
+}
+
+function renameSubcat(cat, key, newLabel) {
+  if(!SUBCATS[cat]) return;
+  const sub = SUBCATS[cat].find(s => s.key === key);
+  if(sub) { sub.label = newLabel; saveStructure({CATS, META, SUBCATS}); }
+}
+
+function removeCategory(cat) {
+  if(!confirm('Sigurno želite obrisati kategoriju "' + (META[cat]?.label||cat) + '" i sve njene podkategorije? Ova radnja se ne može poništiti.')) return;
+  CATS = CATS.filter(c => c !== cat);
+  delete META[cat];
+  delete SUBCATS[cat];
+  saveStructure({CATS, META, SUBCATS});
+}
+
+function removeSubcat(cat, key) {
+  if(!SUBCATS[cat]) return;
+  const sub = SUBCATS[cat].find(s => s.key === key);
+  if(!confirm('Sigurno želite obrisati podkategoriju "' + (sub?.label||key) + '"? Ova radnja se ne može poništiti.')) return;
+  SUBCATS[cat] = SUBCATS[cat].filter(s => s.key !== key);
+  saveStructure({CATS, META, SUBCATS});
+}
+
+
 
 const GROUPS = {
   Matea:  {avatar:'Ma', bg:'#E8F5EE', fg:'#1A6B45'},
@@ -819,7 +935,8 @@ function toggleYearLock(year) {
 // BUCKET CONFIG — prihod / rashod / zajednicki
 // ══════════════════════════════════════════════
 const BUCKET_KEY = 'bucket_config_v1';
-const ALL_CATS   = ['prihodi','rezije','kucanstvo','automobili','pretplate','izlasci','stednja','zajednicki'];
+// ALL_CATS mirrors CATS dynamically
+Object.defineProperty(window, 'ALL_CATS', { get() { return CATS; }, configurable: true });
 
 // defaults: prihodi → 'prihod', everything else → 'rashod'
 function defaultBucketConfig() {
@@ -907,12 +1024,15 @@ function renderSettings() {
       return `<div class="set-row" style="padding-left:4px">
         <div class="set-dot" style="background:${p.color}"></div>
         <span class="set-row-label">${p.label}</span>
+        <button class="crud-btn" onclick="promptRenamePortfolio('${key}')" title="Preimenuj">✏️</button>
+        <button class="crud-btn crud-del" onclick="removePortfolio('${key}');renderSettings();renderPortfolioNav();" title="Obriši">🗑</button>
         <label class="toggle-switch">
           <input type="checkbox" ${enabled?'checked':''} onchange="togglePortfolio('${key}',this.checked)">
           <span class="toggle-slider"></span>
         </label>
       </div>`;
-    }).join('');
+    }).join('') + `
+    <button class="crud-add-btn" onclick="promptAddPortfolio()">+ Dodaj investicijski portfelj</button>`;
   }
 
   const body = document.getElementById('settings-body');
@@ -948,6 +1068,8 @@ function renderSettings() {
       return `<div class="set-row">
         <div class="set-dot" style="background:${sub.color}"></div>
         <span class="set-row-label">${sub.label}</span>
+        <button class="crud-btn" onclick="promptRenameSubcat('${cat}','${sub.key}')" title="Preimenuj">✏️</button>
+        <button class="crud-btn crud-del" onclick="removeSubcat('${cat}','${sub.key}');renderSettings();renderSidebarNav();" title="Obriši">🗑</button>
         <div class="set-defaults">${defInputs}</div>
         <div class="set-radios" id="radios_${cat}__${sub.key}">${btns}</div>
       </div>`;
@@ -957,6 +1079,8 @@ function renderSettings() {
       <div class="set-cat-hdr">
         <span class="set-cat-icon">${m.icon}</span>
         <span class="set-cat-label">${m.label}</span>
+        <button class="crud-btn" onclick="promptRenameCategory('${cat}')" title="Preimenuj kategoriju">✏️</button>
+        <button class="crud-btn crud-del" onclick="removeCategory('${cat}');renderSettings();renderSidebarNav();" title="Obriši kategoriju">🗑</button>
       </div>
       <div class="set-col-hdr">
         <span style="font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px">Stavka</span>
@@ -971,8 +1095,84 @@ function renderSettings() {
         </div>
       </div>
       ${rows}
+      <button class="crud-add-btn" onclick="promptAddSubcat('${cat}')">+ Dodaj podkategoriju</button>
     </div>`;
-  }).join('');
+  }).join('') + `<button class="crud-add-btn crud-add-main" onclick="promptAddCategory()">+ Dodaj novu kategoriju</button>`;
+}
+
+
+// ── PROMPT HELPERS FOR CRUD ──
+function promptAddCategory() {
+  const label = prompt('Naziv nove kategorije:');
+  if(!label || !label.trim()) return;
+  const icon = prompt('Emoji ikona (npr. 🎯), ili ostavite prazno:', '📂') || '📂';
+  const isIncome = confirm('Je li ovo kategorija PRIHODA? (OK = da, Cancel = ne, rashod)');
+  const key = addCategory(label.trim(), icon.trim(), isIncome);
+  if(key) { renderSettings(); renderSidebarNav(); }
+}
+
+function promptRenameCategory(cat) {
+  const current = META[cat]?.label || cat;
+  const newLabel = prompt('Novi naziv kategorije:', current);
+  if(!newLabel || !newLabel.trim() || newLabel.trim() === current) return;
+  renameCategory(cat, newLabel.trim());
+  renderSettings();
+  renderSidebarNav();
+}
+
+function promptAddSubcat(cat) {
+  const label = prompt('Naziv nove podkategorije:');
+  if(!label || !label.trim()) return;
+  const key = addSubcat(cat, label.trim());
+  if(key) renderSettings();
+}
+
+function promptRenameSubcat(cat, key) {
+  const sub = SUBCATS[cat]?.find(s => s.key === key);
+  const current = sub?.label || key;
+  const newLabel = prompt('Novi naziv podkategorije:', current);
+  if(!newLabel || !newLabel.trim() || newLabel.trim() === current) return;
+  renameSubcat(cat, key, newLabel.trim());
+  renderSettings();
+}
+
+function promptAddPortfolio() {
+  const label = prompt('Naziv novog investicijskog portfelja (npr. "Bitcoin"):');
+  if(!label || !label.trim()) return;
+  const unitLabel = prompt('Naziv jedinice (npr. "gram", "udjel", "komad"):', 'jedinica') || 'jedinica';
+  const key = addPortfolio(label.trim(), unitLabel.trim());
+  if(key) {
+    renderSettings();
+    // Add to sidebar nav dynamically
+    addPortfolioNavItem(key, INV_PORTFOLIOS_DEF[key]);
+  }
+}
+
+function promptRenamePortfolio(key) {
+  const current = INV_PORTFOLIOS_DEF[key]?.label || key;
+  const newLabel = prompt('Novi naziv portfelja:', current);
+  if(!newLabel || !newLabel.trim() || newLabel.trim() === current) return;
+  renamePortfolio(key, newLabel.trim());
+  renderSettings();
+  updatePortfolioNavLabel(key, newLabel.trim());
+}
+
+function addPortfolioNavItem(key, p) {
+  const kidsEl = document.getElementById('kids-investments');
+  if(!kidsEl) return;
+  const div = document.createElement('div');
+  div.className = 'nc';
+  div.setAttribute('onclick', "goInv('" + key + "',this)");
+  div.innerHTML = '<span class="nc-dot"></span>' + p.label;
+  kidsEl.appendChild(div);
+}
+
+function updatePortfolioNavLabel(key, newLabel) {
+  document.querySelectorAll('.nc').forEach(function(el) {
+    if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1) {
+      el.innerHTML = '<span class="nc-dot"></span>' + newLabel;
+    }
+  });
 }
 
 function savePin() {
@@ -1304,13 +1504,59 @@ function getActivePortfolios() {
   return Object.fromEntries(Object.entries(INV_PORTFOLIOS_DEF).filter(([k])=>cfg[k]!==false));
 }
 
-const INV_PORTFOLIOS_DEF = {
+const INV_PORTFOLIOS_SEED = {
   xau_banka:   {label:'XAU - Banka',   unit:'g',  unitLabel:'gram', color:'#B8860B', priceLabel:'Cijena zlata (€/g)'},
   xau_revolut: {label:'XAU - Revolut', unit:'g',  unitLabel:'gram', color:'#C47A1E', priceLabel:'Cijena zlata (€/g)'},
   sp500:       {label:'S&P 500',       unit:'udj', unitLabel:'udjel', color:'#2A6BAD', priceLabel:'Cijena udjela (€/udj)'},
   xau_lovro:   {label:'XAU - Lovro',    unit:'g',   unitLabel:'gram',  color:'#2D9E6B', priceLabel:'Cijena zlata (€/g)'},
 };
+
+const PORT_STRUCT_KEY = 'app_portfolios_v1';
+function loadPortfolioStructure() {
+  try {
+    const s = localStorage.getItem(PORT_STRUCT_KEY);
+    if(s) return JSON.parse(s);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(INV_PORTFOLIOS_SEED));
+}
+function savePortfolioStructure(struct) {
+  localStorage.setItem(PORT_STRUCT_KEY, JSON.stringify(struct));
+  if(typeof scheduleAutoPush === 'function') scheduleAutoPush();
+}
+
+let INV_PORTFOLIOS_DEF = loadPortfolioStructure();
 const INV_PORTFOLIOS = INV_PORTFOLIOS_DEF; // kept for compatibility — use getActivePortfolios() for dashboard
+
+function refreshPortfolioStructure() {
+  INV_PORTFOLIOS_DEF = loadPortfolioStructure();
+}
+
+function addPortfolio(label, unitLabel) {
+  const key = slugify(label);
+  if(INV_PORTFOLIOS_DEF[key]) { alert('Portfelj s tim nazivom već postoji.'); return null; }
+  const usedColors = Object.values(INV_PORTFOLIOS_DEF).map(p=>p.color);
+  INV_PORTFOLIOS_DEF[key] = {
+    label, unit: 'kom', unitLabel: unitLabel || 'jedinica',
+    color: nextColor(usedColors), priceLabel: 'Cijena (€/' + (unitLabel||'jed') + ')'
+  };
+  savePortfolioStructure(INV_PORTFOLIOS_DEF);
+  return key;
+}
+
+function renamePortfolio(key, newLabel) {
+  if(!INV_PORTFOLIOS_DEF[key]) return;
+  INV_PORTFOLIOS_DEF[key].label = newLabel;
+  savePortfolioStructure(INV_PORTFOLIOS_DEF);
+}
+
+function removePortfolio(key) {
+  const p = INV_PORTFOLIOS_DEF[key];
+  if(!confirm('Sigurno želite obrisati portfelj "' + (p?.label||key) + '" i svu njegovu povijest kupnji? Ova radnja se ne može poništiti.')) return;
+  delete INV_PORTFOLIOS_DEF[key];
+  savePortfolioStructure(INV_PORTFOLIOS_DEF);
+  localStorage.removeItem('inv2_'+key);
+  localStorage.removeItem('invprice_'+key);
+}
 
 function invLoad(key)  { try { return JSON.parse(localStorage.getItem('inv2_'+key)||'[]'); } catch(e){return[];} }
 function invSave(key,d){ localStorage.setItem('inv2_'+key, JSON.stringify(d)); }
@@ -1889,7 +2135,7 @@ function setSyncStatus(state, msg) {
 
 function collectLocalData() {
   const data = {};
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups'];
   for(let i=0;i<localStorage.length;i++) {
     const k = localStorage.key(i);
     if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
@@ -1898,7 +2144,7 @@ function collectLocalData() {
 }
 
 function applyCloudData(data) {
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups'];
   Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
     .forEach(k=>localStorage.removeItem(k));
   Object.entries(data).forEach(([k,v])=>{ if(k!=='_updated') localStorage.setItem(k,v); });
@@ -1977,6 +2223,10 @@ async function osvjezi() {
 }
 
 function reloadAndRender() {
+  refreshStructure();
+  refreshPortfolioStructure();
+  renderSidebarNav();
+  renderPortfolioNav();
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
   const ap = document.querySelector('.page.active');
@@ -1986,10 +2236,37 @@ function reloadAndRender() {
   else if(id==='cat'&&typeof _sec!=='undefined') renderCatPage(_sec,_cat);
   else if(id==='investments') renderInvPortfolio();
   else if(id==='kalkulator') renderKalkulator();
+  else if(id==='settings') renderSettings();
 }
 
 // ── INIT — pull once after PIN, then start real-time listener ──
+
+function renderSidebarNav() {
+  const plannedEl = document.getElementById('kids-planned');
+  const actualEl  = document.getElementById('kids-actual');
+  if(plannedEl) {
+    plannedEl.innerHTML = CATS.map(cat =>
+      `<div class="nc" onclick="gocat('planned','${cat}',this)"><span class="nc-dot"></span>${META[cat].label}</div>`
+    ).join('');
+  }
+  if(actualEl) {
+    actualEl.innerHTML = CATS.map(cat =>
+      `<div class="nc" onclick="gocat('actual','${cat}',this)"><span class="nc-dot"></span>${META[cat].label}</div>`
+    ).join('');
+  }
+}
+
+function renderPortfolioNav() {
+  const kidsEl = document.getElementById('kids-investments');
+  if(!kidsEl) return;
+  kidsEl.innerHTML = Object.entries(INV_PORTFOLIOS_DEF).map(([key,p]) =>
+    `<div class="nc" onclick="goInv('${key}',this)"><span class="nc-dot"></span>${p.label}</div>`
+  ).join('');
+}
+
 function initApp() {
+  renderSidebarNav();
+  renderPortfolioNav();
   const cfg2 = loadPortConfig();
   Object.keys(INV_PORTFOLIOS_DEF).forEach(function(key) {
     if(cfg2[key] === false) {
@@ -2010,6 +2287,10 @@ async function initWithSync() {
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
   await waitForLayout();
   await pullFromCloud();
+  refreshStructure();
+  refreshPortfolioStructure();
+  renderSidebarNav();
+  renderPortfolioNav();
   DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
   bucketCfg = loadBucketConfig();
   try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
