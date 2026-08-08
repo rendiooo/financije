@@ -2188,115 +2188,126 @@ function renderGodisnji() {
   const body = document.getElementById('godisnji-body');
   if(!body) return;
   const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
-  const locked = isYearLocked(gpYear);
 
-  // Year selector
   const yearOpts = [2024,2025,2026,2027,2028,2029,2030].map(y =>
     `<option value="${y}" ${y===gpYear?'selected':''}>${y}</option>`
   ).join('');
 
-  // Build rows — one per category (no subcats)
-  const expCats = CATS.filter(c => c !== 'zajednicki');
-
-  let rows = expCats.map(cat => {
+  // Build rows — one row per SUBCAT, grouped by category
+  let rows = '';
+  CATS.forEach(cat => {
     const m = META[cat];
-    const cells = MONTHS_SHORT.map((mn, mi) => {
-      const month = mi + 1;
-      const ym = gpYear + '-' + String(month).padStart(2,'0');
-      // Sum all subcats for this category this month
-      const val = SUBCATS[cat].reduce((s, sub) => {
-        const stored = parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0;
-        return s + (stored || (locked ? 0 : getDefault('planned', cat, sub.key)));
-      }, 0);
-      const isLocked = locked;
-      return `<td><input class="gp-inp${val>0?' has-val':''}${isLocked?' locked':''}"
-        type="number" min="0" step="1" placeholder="—"
-        value="${val>0?Math.round(val):''}"
-        ${isLocked?'readonly':''}
-        onchange="gpSaveRow('${cat}',${month},this.value)"
-        onfocus="this.select()"
-      ></td>`;
-    }).join('');
+    if(!SUBCATS[cat] || !SUBCATS[cat].length) return;
 
-    const yearTotal = MONTHS_SHORT.reduce((s, _, mi) => {
-      const ym = gpYear + '-' + String(mi+1).padStart(2,'0');
-      return s + SUBCATS[cat].reduce((ss, sub) => {
-        const stored = parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0;
-        return ss + (stored || (locked ? 0 : getDefault('planned', cat, sub.key)));
-      }, 0);
-    }, 0);
-
-    return `<tr>
-      <td style="display:flex;align-items:center;gap:6px">
-        <span style="width:8px;height:8px;border-radius:50%;background:${m.color};flex-shrink:0;display:inline-block"></span>
+    // Category header row
+    rows += `<tr style="background:var(--tb-head)">
+      <td colspan="${12+2}" style="padding:10px 10px 6px;font-size:12px;font-weight:700;color:${m.color};text-transform:uppercase;letter-spacing:.5px">
         ${m.icon} ${m.label}
       </td>
-      ${cells}
-      <td style="text-align:right;font-weight:600;color:var(--muted);white-space:nowrap">${yearTotal>0?fmtFull(yearTotal):'—'}</td>
     </tr>`;
-  }).join('');
 
-  // Monthly totals row
-  const monthTotals = MONTHS_SHORT.map((_, mi) => {
-    const ym = gpYear + '-' + String(mi+1).padStart(2,'0');
-    const total = expCats.reduce((s, cat) =>
-      s + SUBCATS[cat].reduce((ss, sub) => {
-        const stored = parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0;
-        return ss + (stored || (locked ? 0 : getDefault('planned', cat, sub.key)));
-      }, 0), 0);
-    return `<td style="text-align:right;font-weight:700;color:var(--accent2)">${total>0?fmtFull(total):'—'}</td>`;
+    // Subcat rows
+    SUBCATS[cat].forEach(sub => {
+      const cells = MONTHS_SHORT.map((mn, mi) => {
+        const month = mi + 1;
+        const ym = gpYear + '-' + String(month).padStart(2,'0');
+        const k = 'fp_'+cat+'_'+sub.key+'_'+ym;
+        const val = parseFloat(localStorage.getItem(k)||'0')||0;
+        return `<td style="padding:2px 3px">
+          <input class="gp-inp${val>0?' has-val':''}"
+            type="number" min="0" step="1" placeholder="—"
+            value="${val>0?val:''}"
+            onfocus="this.select()"
+            onchange="gpSaveSubcat('${cat}','${sub.key}',${month},this.value,this)"
+          >
+        </td>`;
+      }).join('');
+
+      const yearTotal = Array.from({length:12},(_,i)=>{
+        const k = 'fp_'+cat+'_'+sub.key+'_'+gpYear+'-'+String(i+1).padStart(2,'0');
+        return parseFloat(localStorage.getItem(k)||'0')||0;
+      }).reduce((a,b)=>a+b,0);
+
+      rows += `<tr>
+        <td style="padding:7px 10px;display:flex;align-items:center;gap:6px;white-space:nowrap">
+          <span style="width:6px;height:6px;border-radius:50%;background:${sub.color};flex-shrink:0;display:inline-block"></span>
+          ${sub.label}
+        </td>
+        ${cells}
+        <td style="text-align:right;font-weight:600;font-size:12px;white-space:nowrap;padding:0 8px;color:var(--muted)">${yearTotal>0?fmtFull(yearTotal):'—'}</td>
+      </tr>`;
+    });
+
+    // Category subtotal row
+    const catCells = MONTHS_SHORT.map((_,mi) => {
+      const ym = gpYear+'-'+String(mi+1).padStart(2,'0');
+      const total = SUBCATS[cat].reduce((s,sub)=>{
+        const k='fp_'+cat+'_'+sub.key+'_'+ym;
+        return s+(parseFloat(localStorage.getItem(k)||'0')||0);
+      },0);
+      return `<td style="text-align:right;font-weight:600;font-size:12px;padding:6px 3px;color:var(--accent2)">${total>0?fmtFull(total):'—'}</td>`;
+    }).join('');
+    const catYearTotal = Array.from({length:12},(_,i)=>{
+      const ym=gpYear+'-'+String(i+1).padStart(2,'0');
+      return SUBCATS[cat].reduce((s,sub)=>{
+        const k='fp_'+cat+'_'+sub.key+'_'+ym;
+        return s+(parseFloat(localStorage.getItem(k)||'0')||0);
+      },0);
+    }).reduce((a,b)=>a+b,0);
+    rows += `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--accent2)">Subtotal ${m.label}</td>
+      ${catCells}
+      <td style="text-align:right;font-weight:700;font-size:12px;padding:0 8px;color:var(--accent2)">${catYearTotal>0?fmtFull(catYearTotal):'—'}</td>
+    </tr>`;
+  });
+
+  // Grand total row
+  const grandCells = MONTHS_SHORT.map((_,mi) => {
+    const ym = gpYear+'-'+String(mi+1).padStart(2,'0');
+    const total = CATS.reduce((s,cat)=>s+(SUBCATS[cat]||[]).reduce((ss,sub)=>{
+      return ss+(parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
+    },0),0);
+    return `<td style="text-align:right;font-weight:700;padding:8px 3px;color:var(--green)">${total>0?fmtFull(total):'—'}</td>`;
   }).join('');
-  const grandTotal = expCats.reduce((s, cat) =>
-    s + MONTHS_SHORT.reduce((ss, _, mi) => {
-      const ym = gpYear + '-' + String(mi+1).padStart(2,'0');
-      return ss + SUBCATS[cat].reduce((sss, sub) => {
-        const stored = parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0;
-        return sss + (stored || (locked ? 0 : getDefault('planned', cat, sub.key)));
-      }, 0);
-    }, 0), 0);
+  const grandTotal = CATS.reduce((s,cat)=>s+Array.from({length:12},(_,i)=>{
+    const ym=gpYear+'-'+String(i+1).padStart(2,'0');
+    return (SUBCATS[cat]||[]).reduce((ss,sub)=>{
+      return ss+(parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
+    },0);
+  }).reduce((a,b)=>a+b,0),0);
 
   body.innerHTML = `
     <div class="gp-year-sel">
       <select style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:14px" onchange="gpYear=+this.value;renderGodisnji()">
         ${yearOpts}
       </select>
-      ${locked ? '<span style="font-size:12px;color:var(--amber);font-weight:500">🔒 Plan za '+gpYear+'. je zaključan</span>' : ''}
+      <span style="font-size:12px;color:var(--muted)">Planirani troškovi za ${gpYear}.</span>
     </div>
     <div class="gp-wrap">
       <table class="gp-table">
         <thead><tr>
-          <th style="text-align:left">Kategorija</th>
-          ${MONTHS_SHORT.map(m=>`<th>${m}</th>`).join('')}
-          <th>Godišnje</th>
+          <th style="text-align:left;min-width:160px">Stavka</th>
+          ${MONTHS_SHORT.map(m=>`<th style="min-width:72px">${m}</th>`).join('')}
+          <th style="min-width:80px">Godišnje</th>
         </tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr class="gp-subtotal">
-          <td>Ukupno</td>
-          ${monthTotals}
-          <td style="text-align:right;font-weight:700;color:var(--accent2)">${grandTotal>0?fmtFull(grandTotal):'—'}</td>
+        <tfoot><tr style="border-top:2px solid var(--border)">
+          <td style="font-weight:700;padding:8px 10px">UKUPNO</td>
+          ${grandCells}
+          <td style="text-align:right;font-weight:700;padding:8px;color:var(--green)">${grandTotal>0?fmtFull(grandTotal):'—'}</td>
         </tr></tfoot>
       </table>
     </div>`;
 }
 
-function gpSaveRow(cat, month, totalVal) {
-  // Distribute the entered value equally across all subcats
-  const subs = SUBCATS[cat];
-  if(!subs || !subs.length) return;
+function gpSaveSubcat(cat, subkey, month, val, inp) {
   const ym = gpYear + '-' + String(month).padStart(2,'0');
-  const total = parseFloat(totalVal) || 0;
-  const perSub = total > 0 ? Math.round(total / subs.length * 100) / 100 : 0;
-  const remainder = total > 0 ? Math.round((total - perSub * (subs.length - 1)) * 100) / 100 : 0;
-  subs.forEach((sub, i) => {
-    const val = i === subs.length - 1 ? remainder : perSub;
-    if(val > 0) {
-      localStorage.setItem('fp_'+cat+'_'+sub.key+'_'+ym, String(val));
-    } else {
-      localStorage.removeItem('fp_'+cat+'_'+sub.key+'_'+ym);
-    }
-  });
+  const k = 'fp_'+cat+'_'+subkey+'_'+ym;
+  const num = parseFloat(val) || 0;
+  if(num > 0) localStorage.setItem(k, String(num));
+  else localStorage.removeItem(k);
+  inp.className = 'gp-inp' + (num > 0 ? ' has-val' : '');
   scheduleAutoPush();
-  renderGodisnji();
 }
 
 // ══════════════════════════════════════════════
