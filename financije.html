@@ -459,7 +459,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot">Podaci lokalni · v6.0</div>
+  <div class="sb-foot">Podaci · v2.4.1</div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -1839,7 +1839,8 @@ function renderDash(){
   const planZaj = bucketSum('planned','zajednicki');
   const actZaj  = bucketSum('actual','zajednicki');
   const zajBal  = planZaj - actZaj;
-  const pocetno = loadPocetnoStanje();
+  // Use year-specific ZR stanje if set, otherwise fall back to global setting
+  const pocetno = getZrStanje(selYear) || loadPocetnoStanje();
 
   // Cumulative stanje: početno stanje + sum(uplata - troškovi) for months 1..selMonth
   // For each month: stanje(M) = stanje(M-1) + uplata(M) - troškovi(M)
@@ -2003,7 +2004,7 @@ function renderDash(){
   const zajYear = selYear;
   document.getElementById('chart-zaj-year').textContent = zajYear;
   const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
-  const pocetnoStanje = loadPocetnoStanje();
+  const pocetnoStanje = getZrStanje(zajYear) || loadPocetnoStanje();
 
 
 
@@ -2104,6 +2105,17 @@ function renderDashTable() {
 // ══════════════════════════════════════════════
 let gpYear = new Date().getFullYear();
 
+function getZrStanje(year) {
+  return parseFloat(localStorage.getItem('zr_stanje_'+year)||'0')||0;
+}
+function saveZrStanje(year, val) {
+  const num = parseFloat(val)||0;
+  if(num) localStorage.setItem('zr_stanje_'+year, String(num));
+  else localStorage.removeItem('zr_stanje_'+year);
+  scheduleAutoPush();
+  renderGodisnji();
+}
+
 function renderGodisnji() {
   const body = document.getElementById('godisnji-body');
   if(!body) return;
@@ -2196,12 +2208,31 @@ function renderGodisnji() {
     },0);
   }).reduce((a,b)=>a+b,0),0);
 
+  const zrVal = getZrStanje(gpYear);
+
   body.innerHTML = `
     <div class="gp-year-sel">
       <select style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:14px" onchange="gpYear=+this.value;renderGodisnji()">
         ${yearOpts}
       </select>
       <span style="font-size:12px;color:var(--muted)">Planirani troškovi za ${gpYear}.</span>
+    </div>
+    <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">
+          💳 Stvarno stanje zajedničkog računa na početku ${gpYear}.
+        </div>
+        <div style="font-size:11px;color:var(--muted)">Koristite za simulacije i planiranje — nadjačava automatski izračun</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+        <input type="number" min="0" step="0.01" placeholder="—"
+          value="${zrVal>0?zrVal:''}"
+          style="width:140px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:15px;font-weight:600;text-align:right"
+          onchange="saveZrStanje(${gpYear},this.value)"
+          onfocus="this.select()">
+        <span style="color:var(--muted)">€</span>
+        ${zrVal>0?`<span style="font-size:12px;color:var(--green);font-weight:600">${fmtFull(zrVal)}</span>`:''}
+      </div>
     </div>
     <div class="gp-wrap">
       <table class="gp-table">
@@ -2329,7 +2360,7 @@ function setSyncStatus(state, msg) {
 
 function collectLocalData() {
   const data = {};
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_'];
   for(let i=0;i<localStorage.length;i++) {
     const k = localStorage.key(i);
     if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
@@ -2338,7 +2369,7 @@ function collectLocalData() {
 }
 
 function applyCloudData(data) {
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_'];
   Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
     .forEach(k=>localStorage.removeItem(k));
   Object.entries(data).forEach(([k,v])=>{ if(k!=='_updated') localStorage.setItem(k,v); });
