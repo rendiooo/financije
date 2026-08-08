@@ -950,6 +950,12 @@ function isYearLocked(year) {
   return getLockedYears().includes(Number(year));
 }
 
+function snapshotAndPush(yr) {
+  snapshotYearPlan(yr);
+  clearTimeout(_autoPushTimeout);
+  pushToCloud().then(() => alert('Plan za ' + yr + '. je osvježen s trenutnim defaultima.'));
+}
+
 function snapshotYearPlan(year) {
   // When locking a year, bake defaults into actual localStorage entries
   // so future default changes don't affect this locked year
@@ -986,7 +992,9 @@ function toggleYearLock(year) {
   }
   localStorage.setItem(LOCK_KEY, JSON.stringify(locked));
   renderSettings();
-  scheduleAutoPush();
+  // Immediate push — snapshot must reach cloud before any pull can overwrite it
+  clearTimeout(_autoPushTimeout);
+  if(typeof pushToCloud === 'function') pushToCloud();
 }
 
 // ══════════════════════════════════════════════
@@ -1062,9 +1070,10 @@ function renderSettings() {
     lockEl.innerHTML = years.map(yr => {
       const locked = isYearLocked(yr);
       return `<div class="set-row" style="padding-left:4px">
-        <span class="set-row-label" style="display:flex;align-items:center;gap:8px">
+        <span class="set-row-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           ${locked ? '🔒' : '🔓'} ${yr}. godina
           ${locked ? '<span style="font-size:11px;color:var(--amber);font-weight:500">ZAKLJUČANO</span>' : ''}
+          ${locked ? `<button class="crud-btn" style="font-size:11px;padding:2px 8px;border:1px solid var(--border);border-radius:6px" onclick="event.stopPropagation();snapshotAndPush(${yr})">↻ Osvježi defaults</button>` : ''}
         </span>
         <label class="toggle-switch">
           <input type="checkbox" ${locked?'checked':''} onchange="toggleYearLock(${yr})">
@@ -1101,8 +1110,7 @@ function renderSettings() {
     {key:'zajednicki',  label:'Zajednički',  cls:'active-zajednicki'},
   ];
   const SECTIONS = [
-    {key:'planned', label:'Plan.'},
-    {key:'actual',  label:'Stvarno'},
+    {key:'actual',  label:'Zadano (stvarno)'},
   ];
 
   body.innerHTML = ALL_CATS.map(cat => {
@@ -1144,8 +1152,7 @@ function renderSettings() {
         <span style="font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px">Stavka</span>
         <div style="display:flex;align-items:center;gap:4px">
           <div style="display:flex;gap:4px;margin-right:8px">
-            <span class="set-col-lbl" style="width:72px">Plan. zadano</span>
-            <span class="set-col-lbl" style="width:72px">Stvarno zadano</span>
+            <span class="set-col-lbl" style="width:100px">Zadano (stvarno)</span>
           </div>
           <div class="set-col-labels">
             ${BUCKETS.map(b=>`<span class="set-col-lbl">${b.label}</span>`).join('')}
@@ -1371,7 +1378,9 @@ function getDB(section, cat, subkey) {
   if (stored !== null && stored !== '' && parseFloat(stored) !== 0) {
     return parseFloat(stored) || 0;
   }
-  // fall back to default value (locked years have been snapshotted so defaults are baked in)
+  // Planned values come ONLY from explicit entries (set via Godišnji plan)
+  // Actual values fall back to defaults
+  if(section === 'planned') return 0;
   return getDefault(section, cat, subkey);
 }
 function setDB(section, cat, subkey, val) {
@@ -1469,10 +1478,9 @@ function renderCatPage(section, cat) {
 
   document.getElementById('cat-bc').textContent = (section==='planned'?'Planirani troškovi':'Stvarni troškovi') + ' ›';
   document.getElementById('cat-title').textContent = m.label;
-  const isLocked = section === 'planned' && !testMode && isYearLocked(selYear);
-  document.getElementById('cat-sub').textContent = isLocked
-    ? '🔒 Plan za ' + selYear + '. godinu je zaključan'
-    : (section==='planned' ? 'Unesite planirane iznose po kategoriji' : 'Unesite stvarne iznose po kategoriji');
+  document.getElementById('cat-sub').textContent = section==='planned'
+    ? 'Pregled plana — unos se vrši u Godišnjem planu'
+    : 'Unesite stvarne iznose po kategoriji';
 
   let rowsHTML = '';
   subs.forEach(sub => { rowsHTML += subcatRowTbl(section, cat, sub, isInc); });
@@ -1494,20 +1502,20 @@ function renderCatPage(section, cat) {
 function subcatRowTbl(section, cat, sub, isInc) {
   const val = getDB(section, cat, sub.key);
   const isEmpty = val === 0;
-  const isDefault = val > 0 && !hasMonthlyValue(section, cat, sub.key) && getDefault(section, cat, sub.key) > 0;
+
   return `<div class="tbl-row" id="tblrow-${sub.key}">
     <div class="tbl-row-label">
       <div class="tbl-dot" style="background:${sub.color}"></div>
       ${sub.label}
-      ${isDefault?'<span style="font-size:10px;color:var(--muted);margin-left:4px;font-style:italic">zadano</span>':''}
     </div>
     <div class="tbl-cell">
-      <input type="number" class="tbl-val${isEmpty?' empty-val':''}${isDefault?' default-val':''}"
+      <input type="number" class="tbl-val${isEmpty?' empty-val':''}"
         id="tblval-${sub.key}"
         value="${val > 0 ? val : ''}"
         placeholder="—"
         min="0" step="0.01"
         onfocus="this.select()"
+        ${section==='planned' ? 'readonly style=\'background:transparent;opacity:.6;cursor:default\'' : ''}
         onchange="saveVal('${section}','${cat}','${sub.key}',this)"
         onkeydown="if(event.key==='Enter'){this.blur()}"
       >
@@ -1516,12 +1524,7 @@ function subcatRowTbl(section, cat, sub, isInc) {
 }
 
 function saveVal(section, cat, key, inp) {
-  // Block edits on locked planned years
-  if(section === 'planned' && !testMode && isYearLocked(selYear)) {
-    inp.value = getDB(section, cat, key) || '';
-    alert('Plan za ' + selYear + '. godinu je zaključan. Otključajte ga u Postavkama.');
-    return;
-  }
+
   const val = parseFloat(inp.value) || 0;
   setDB(section, cat, key, val);
   save();
