@@ -986,12 +986,41 @@ function getLockedYears() {
 function isYearLocked(year) {
   return getLockedYears().includes(Number(year));
 }
+
+function snapshotYearPlan(year) {
+  // When locking a year, bake defaults into actual localStorage entries
+  // so future default changes don't affect this locked year
+  for(let m=1; m<=12; m++) {
+    const ym = year + '-' + String(m).padStart(2,'0');
+    CATS.forEach(cat => {
+      if(!SUBCATS[cat]) return;
+      SUBCATS[cat].forEach(sub => {
+        const k = 'fp_'+cat+'_'+sub.key+'_'+ym;
+        const existing = parseFloat(localStorage.getItem(k)||'0')||0;
+        if(!existing) {
+          // No explicit value — bake in the default
+          const def = getDefault('planned', cat, sub.key);
+          if(def > 0) {
+            localStorage.setItem(k, String(def));
+          }
+        }
+        // If already has explicit value — leave it as is
+      });
+    });
+  }
+}
+
 function toggleYearLock(year) {
   const locked = getLockedYears();
   const yr = Number(year);
   const idx = locked.indexOf(yr);
-  if(idx === -1) locked.push(yr);
-  else locked.splice(idx, 1);
+  if(idx === -1) {
+    // Locking — first snapshot current defaults into explicit values
+    snapshotYearPlan(yr);
+    locked.push(yr);
+  } else {
+    locked.splice(idx, 1);
+  }
   localStorage.setItem(LOCK_KEY, JSON.stringify(locked));
   renderSettings();
   scheduleAutoPush();
@@ -1347,10 +1376,6 @@ function getDB(section, cat, subkey) {
   const stored = localStorage.getItem(`${pfx}_${cat}_${subkey}_${periodKey()}`);
   if (stored !== null && stored !== '' && parseFloat(stored) !== 0) {
     return parseFloat(stored) || 0;
-  }
-  // If planned and year is locked — don't fall back to defaults, return 0
-  if(section === 'planned' && !testMode && isYearLocked(selYear)) {
-    return 0;
   }
   return getDefault(section, cat, subkey);
 }
