@@ -363,7 +363,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.4.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.5.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -399,7 +399,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
-  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v3.4.0</span></div>
+  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v3.5.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -2372,27 +2372,15 @@ function renderGodisnji() {
   });
 
   // ── Dashboard-style monthly summary rows (Prihod, Rashod, ZR, Stanje) ──
-  const RASHODI_CATS = CATS.filter(c => c !== 'prihodi' && c !== 'zajednicki');
-
-  function gpMonthSum(cat, month) {
+  // GP bucket sum for a single month — mirrors bucketSum() but for a specific year-month
+  function gpBucketSum(bucket, month) {
     const ym = gpYear+'-'+String(month).padStart(2,'0');
-    return (SUBCATS[cat]||[]).reduce((s,sub)=>{
-      return s+(parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
-    },0);
-  }
-  function gpMonthZaj(month) {
-    const ym = gpYear+'-'+String(month).padStart(2,'0');
-    return (SUBCATS['zajednicki']||[]).reduce((s,sub)=>{
-      if(sub.key==='zajednicki_uplata') return s;
-      const bk = getBucket('zajednicki',sub.key);
-      if(bk!=='zajednicki') return s;
-      return s+(parseFloat(localStorage.getItem('fp_zajednicki_'+sub.key+'_'+ym)||'0')||0);
-    },0) + CATS.filter(c=>c!=='prihodi'&&c!=='zajednicki').reduce((s,cat)=>{
-      return s+(SUBCATS[cat]||[]).reduce((ss,sub)=>{
-        if(getBucket(cat,sub.key)!=='zajednicki') return ss;
-        return ss+(parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
-      },0);
-    },0);
+    return ALL_CATS.reduce((total, cat) => {
+      return total + (SUBCATS[cat]||[]).reduce((s, sub) => {
+        if(getBucket(cat, sub.key) !== bucket) return s;
+        return s + (parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
+      }, 0);
+    }, 0);
   }
   function gpMonthUplata(month) {
     const ym = gpYear+'-'+String(month).padStart(2,'0');
@@ -2402,12 +2390,12 @@ function renderGodisnji() {
   const pocetnoGp = getZrStanje(gpYear) || loadPocetnoStanje();
   const summaryMonths = Array.from({length:12},(_,i)=>i+1);
 
-  // ── Per-month calculations ──
+  // ── Per-month calculations — same bucket logic as dashboard ──
   const monthData = summaryMonths.map(m => {
-    const prihod    = gpMonthSum('prihodi', m);
-    const rashod    = RASHODI_CATS.reduce((s,cat)=>s+gpMonthSum(cat,m), 0);
-    const zajTros   = gpMonthZaj(m);
-    const uplata    = gpMonthUplata(m);
+    const prihod  = gpBucketSum('prihod', m);
+    const rashod  = gpBucketSum('rashod', m);
+    const zajTros = gpBucketSum('zajednicki', m);
+    const uplata  = gpMonthUplata(m);
     return {prihod, rashod, zajTros, uplata};
   });
 
@@ -2419,7 +2407,7 @@ function renderGodisnji() {
   });
   const zrChartData = zrStanjePerMonth.slice();
 
-  // Bilanca = prihod - rashod (sve kategorije, isto kao dashboard)
+  // Bilanca = prihod - rashod (bucket rashod) — identično dashboardu
   const bilancaPerMonth = summaryMonths.map((m,i) =>
     monthData[i].prihod - monthData[i].rashod
   );
@@ -2428,8 +2416,8 @@ function renderGodisnji() {
   const prihodTotal  = monthData.reduce((s,d)=>s+d.prihod, 0);
   const rashodTotal  = monthData.reduce((s,d)=>s+d.rashod, 0);
   const zajTrosTotal = monthData.reduce((s,d)=>s+d.zajTros, 0);
-  const zrFinal      = zrStanjePerMonth[11] || pocetnoGp;
-  const bilancaTotal = monthData.reduce((s,d)=>s+d.prihod-d.rashod, 0);
+  const zrFinal      = zrStanjePerMonth[11] !== undefined ? zrStanjePerMonth[11] : pocetnoGp;
+  const bilancaTotal = prihodTotal - rashodTotal;
 
   // Row generators
   function mkRow(vals, colorFn, bold) {
