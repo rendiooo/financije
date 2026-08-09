@@ -329,7 +329,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.3.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.4.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -468,7 +468,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot">Podaci · v3.3.0</div>
+  <div class="sb-foot">Podaci · v3.4.0</div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -2339,9 +2339,9 @@ function renderGodisnji() {
   });
   const zrChartData = zrStanjePerMonth.slice();
 
-  // Bilanca = prihod - rashod (osobna)
+  // Bilanca = prihod - rashod (sve kategorije, isto kao dashboard)
   const bilancaPerMonth = summaryMonths.map((m,i) =>
-    monthData[i].prihod - monthData[i].rashod - monthData[i].uplata
+    monthData[i].prihod - monthData[i].rashod
   );
 
   // Yearly totals
@@ -2349,7 +2349,7 @@ function renderGodisnji() {
   const rashodTotal  = monthData.reduce((s,d)=>s+d.rashod, 0);
   const zajTrosTotal = monthData.reduce((s,d)=>s+d.zajTros, 0);
   const zrFinal      = zrStanjePerMonth[11] || pocetnoGp;
-  const bilancaTotal = monthData.reduce((s,d)=>s+d.prihod-d.rashod-d.uplata, 0);
+  const bilancaTotal = monthData.reduce((s,d)=>s+d.prihod-d.rashod, 0);
 
   // Row generators
   function mkRow(vals, colorFn, bold) {
@@ -2626,9 +2626,21 @@ function renameNekretnina(key) {
   if(currentNekret === key) renderNekretPage(key);
 }
 
-function saveNajam(key, val) {
+function saveNajam(key, val, year) {
   const data = loadNekretnine();
-  if(data[key]) { data[key].najam = parseFloat(val)||0; saveNekretnine(data); }
+  if(!data[key]) return;
+  if(!data[key].najam_by_year) data[key].najam_by_year = {};
+  const yr = year || nekretYear;
+  data[key].najam_by_year[yr] = parseFloat(val)||0;
+  // keep legacy najam for compatibility
+  data[key].najam = parseFloat(val)||0;
+  saveNekretnine(data);
+}
+
+function getNajam(nekretData, year) {
+  if(nekretData.najam_by_year && nekretData.najam_by_year[year] !== undefined)
+    return nekretData.najam_by_year[year];
+  return nekretData.najam || 0;
 }
 
 // ── RENDER LIST (overview) ────────────────────
@@ -2689,8 +2701,8 @@ function renderNekretList() {
               <button class="crud-btn crud-del" onclick="event.stopPropagation();removeNekretnina('${k}')">🗑</button>
             </div>
           </div>
-          <div style="margin-top:12px;font-size:13px;color:var(--muted)">Najam</div>
-          <div style="font-size:20px;font-weight:700;color:var(--green)">${n.najam>0?fmtFull(n.najam):'—'}</div>
+          <div style="margin-top:12px;font-size:13px;color:var(--muted)">Najam ${nekretYear}.</div>
+          <div style="font-size:20px;font-weight:700;color:var(--green)">${getNajam(n,nekretYear)>0?fmtFull(getNajam(n,nekretYear))+'/mj':'—'}</div>
           <div style="margin-top:4px">
             <span style="font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600;background:${placeno?'rgba(61,190,122,.15)':'rgba(224,82,82,.12)'};color:${placeno?'var(--green)':'var(--red)'}">${placeno?'✓ Plaćeno':'✗ Nije plaćeno'}</span>
           </div>
@@ -2731,7 +2743,11 @@ function renderNekretPage(key) {
   }).join('');
 
   // Yearly totals per category for dashboard cards
-  const yearlyNajam = n.najam * 12;
+  // yearlyNajam = count of checked months × price for that year
+  const najamPerMj = getNajam(n, nekretYear);
+  const checkedMonths = Array.from({length:12},(_,i)=>i+1)
+    .filter(m=>getNajamPlaceno(key, nekretYear, m)).length;
+  const yearlyNajam = checkedMonths * najamPerMj;
   const yearlyTroskovi = cats.filter(cat=>cat.key!=='rezije').reduce((s,cat)=>s+cat.items.reduce((ss,item)=>
     ss+Array.from({length:12},(_,i)=>getNekretVal(key,cat.key,item.key,nekretYear,i+1)).reduce((a,b)=>a+b,0),0),0);
 
@@ -2831,10 +2847,10 @@ function renderNekretPage(key) {
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         <input type="number" min="0" step="0.01" placeholder="0.00"
-          value="${n.najam>0?n.najam:''}"
+          value="${najamPerMj>0?najamPerMj:''}"
           style="width:130px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:15px;font-weight:600;text-align:right"
           onfocus="this.select()"
-          onchange="saveNajam('${key}',this.value);renderNekretPage('${key}')">
+          onchange="saveNajam('${key}',this.value,${nekretYear});renderNekretPage('${key}')">
         <span style="color:var(--muted)">€/mj</span>
       </div>
     </div>
@@ -2853,7 +2869,7 @@ function renderNekretPage(key) {
             <tr>
               <td style="padding:7px 10px;white-space:nowrap;font-size:13px">💳 Najam</td>
               ${najamRow}
-              <td style="text-align:right;font-weight:600;font-size:12px;padding:0 8px;color:var(--green)">${n.najam>0?fmtFull(yearlyNajam):'—'}</td>
+              <td style="text-align:right;font-weight:600;font-size:12px;padding:0 8px;color:var(--green)">${yearlyNajam>0?fmtFull(yearlyNajam):'—'} ${checkedMonths>0&&checkedMonths<12?'('+checkedMonths+'/12)':''}</td>
             </tr>
           </tbody>
         </table>
