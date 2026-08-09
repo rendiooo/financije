@@ -365,7 +365,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.0.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.1.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -401,7 +401,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
-  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v4.0.0</span></div>
+  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v4.1.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -1813,30 +1813,51 @@ function renderInvPortfolio() {
     </div>`;
 
   // ── Form ──
-  document.getElementById('inv-form-title').textContent = `Nova kupnja — ${p.label}`;
+  document.getElementById('inv-form-title').textContent = `Nova transakcija — ${p.label}`;
   document.getElementById('inv-form-body').innerHTML = `
     <div class="fg">
+      <div>
+        <label class="fl">Vrsta transakcije</label>
+        <div style="display:flex;gap:8px">
+          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s" id="inv-type-buy-lbl">
+            <input type="radio" name="inv-type" id="inv-type-buy" value="buy" checked onchange="invTypeChange()" style="display:none">
+            <span>📈 Kupnja</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s" id="inv-type-sell-lbl">
+            <input type="radio" name="inv-type" id="inv-type-sell" value="sell" onchange="invTypeChange()" style="display:none">
+            <span>📉 Prodaja</span>
+          </label>
+        </div>
+      </div>
       <div><label class="fl">Mjesec i godina</label>
         <div style="display:flex;gap:6px">
           <select id="inv-f-month" style="flex:1">
             ${['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj','Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'].map((m,i)=>`<option value="${String(i+1).padStart(2,'0')}" ${i+1===new Date().getMonth()+1?'selected':''}>${m}</option>`).join('')}
           </select>
           <select id="inv-f-year" style="flex:1">
-            ${Array.from({length:5},(_,i)=>new Date().getFullYear()-2+i).map(y=>`<option value="${y}" ${y===new Date().getFullYear()?'selected':''}>${y}</option>`).join('')}
+            ${Array.from({length:7},(_,i)=>new Date().getFullYear()-2+i).map(y=>`<option value="${y}" ${y===new Date().getFullYear()?'selected':''}>${y}</option>`).join('')}
           </select>
         </div>
       </div>
-      <div><label class="fl">Količina (${p.unitLabel})</label><input type="number" id="inv-f-qty" placeholder="0.00" min="0" step="0.001"></div>
-      <div><label class="fl">Cijena (€/${p.unitLabel})</label><input type="number" id="inv-f-price" placeholder="0.00" min="0" step="0.01"></div>
+      <div><label class="fl">Ukupna količina (${p.unitLabel})</label><input type="number" id="inv-f-qty" placeholder="0.000" min="0" step="0.001"></div>
+      <div><label class="fl">Ukupna cijena (€)</label><input type="number" id="inv-f-total" placeholder="0.00" min="0" step="0.01"></div>
       <div><label class="fl">Bilješka</label><input type="text" id="inv-f-note" placeholder="Opcionalno..."></div>
     </div>
-    <button class="btn btn-p" onclick="addInvPurchase('${key}')">+ Dodaj kupnju</button>`;
+    <button class="btn btn-p" onclick="addInvTransaction('${key}')">+ Dodaj transakciju</button>`;
 
-  // ── Summary ──
-  const totalQty      = data.reduce((s,i)=>s+i.qty,0);
-  const totalInvested = data.reduce((s,i)=>s+i.qty*i.price,0);
+  // Set initial styling for buy/sell labels
+  setTimeout(() => {
+    const buyLbl  = document.getElementById('inv-type-buy-lbl');
+    const sellLbl = document.getElementById('inv-type-sell-lbl');
+    if(buyLbl) { buyLbl.style.borderColor='var(--green)'; buyLbl.style.color='var(--green)'; }
+  }, 50);
+
+  // ── Summary — sells subtract quantity and invested ──
+  const totalQty      = data.reduce((s,i)=> i.type==='sell' ? s-i.qty : s+i.qty, 0);
+  const totalInvested = data.reduce((s,i)=> i.type==='sell' ? s-(i.total||i.qty*i.price) : s+(i.total||i.qty*i.price), 0);
+  const totalReceived = data.filter(i=>i.type==='sell').reduce((s,i)=>s+(i.total||i.qty*i.price),0);
   const currentVal    = totalQty * curPrice;
-  const gain          = currentVal - totalInvested;
+  const gain          = currentVal - totalInvested + totalReceived;
   const gainPct       = totalInvested > 0 ? ((gain/totalInvested)*100).toFixed(2) : '0.00';
   const pos           = gain >= 0;
   const avgPrice      = totalQty > 0 ? totalInvested/totalQty : 0;
@@ -1854,46 +1875,73 @@ function renderInvPortfolio() {
   // ── History ──
   const el = document.getElementById('inv-history');
   if (!data.length) {
-    el.innerHTML = '<div class="empty">Nema kupnji. Dodajte prvu gore.</div>';
+    el.innerHTML = '<div class="empty">Nema transakcija. Dodajte prvu gore.</div>';
     return;
   }
   el.innerHTML = `
-    <div style="display:grid;grid-template-columns:100px 1fr 1fr 1fr 1fr auto;gap:0;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px">
-      <span>Datum</span><span>Količina</span><span>Cijena</span><span>Uloženo</span><span>Tren. vrijednost</span><span></span>
+    <div style="display:grid;grid-template-columns:80px 60px 1fr 1fr 1fr 1fr auto;gap:0;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0 0 6px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <span>Datum</span><span>Vrsta</span><span>Količina</span><span>Cijena/jed.</span><span>Ukupno</span><span>Tren. vrijednost</span><span></span>
     </div>
     ${data.map(item=>{
-      const invested = item.qty * item.price;
-      const curV     = item.qty * curPrice;
-      const g        = curV - invested;
+      const isSell   = item.type === 'sell';
+      const itemTotal = item.total || item.qty * item.price;
+      const curV     = isSell ? 0 : item.qty * curPrice;
+      const g        = isSell ? 0 : curV - itemTotal;
       const gPos     = g >= 0;
-      return `<div style="display:grid;grid-template-columns:100px 1fr 1fr 1fr 1fr auto;gap:0;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border)">
-        <span style="font-size:13px;color:var(--muted)">${item.date.length===7?item.date.slice(0,7):item.date.slice(0,7)}</span>
-        <span style="font-size:14px;font-weight:500">${item.qty.toLocaleString('hr-HR',{minimumFractionDigits:3,maximumFractionDigits:3})} ${p.unitLabel}</span>
+      const typeCol  = isSell ? 'var(--red)' : 'var(--green)';
+      const typeLabel= isSell ? '📉 Prodaja' : '📈 Kupnja';
+      return `<div style="display:grid;grid-template-columns:80px 60px 1fr 1fr 1fr 1fr auto;gap:0;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border)">
+        <span style="font-size:13px;color:var(--muted)">${item.date.slice(0,7)}</span>
+        <span style="font-size:11px;font-weight:700;color:${typeCol}">${typeLabel}</span>
+        <span style="font-size:14px;font-weight:500;color:${isSell?'var(--red)':'var(--text)'}">
+          ${isSell?'−':'+'} ${item.qty.toLocaleString('hr-HR',{minimumFractionDigits:3,maximumFractionDigits:3})} ${p.unitLabel}
+        </span>
         <span style="font-size:13px;color:var(--muted)">${fmtFull(item.price)}/${p.unitLabel}</span>
-        <span style="font-size:14px;font-weight:600">${fmtFull(invested)}</span>
-        <span style="font-size:14px;font-weight:600;color:${gPos?'var(--green)':'var(--red)'}">${fmtFull(curV)} <span style="font-size:11px">${gPos?'+':'−'}${fmtFull(Math.abs(g))}</span></span>
+        <span style="font-size:14px;font-weight:600;color:${typeCol}">${isSell?'−':'+'} ${fmtFull(itemTotal)}</span>
+        <span style="font-size:14px;font-weight:600;color:${gPos?'var(--green)':'var(--red)'}">
+          ${isSell?'<span style="color:var(--muted)">—</span>':fmtFull(curV)+' <span style="font-size:11px">'+(gPos?'+':'−')+fmtFull(Math.abs(g))+'</span>'}
+        </span>
         <button class="db" onclick="delInvPurchase('${key}',${item.id})">×</button>
       </div>`;
     }).join('')}`;
 }
 
-function addInvPurchase(key) {
+function invTypeChange() {
+  const isBuy  = document.getElementById('inv-type-buy')?.checked;
+  const buyLbl  = document.getElementById('inv-type-buy-lbl');
+  const sellLbl = document.getElementById('inv-type-sell-lbl');
+  if(!buyLbl || !sellLbl) return;
+  buyLbl.style.borderColor  = isBuy  ? 'var(--green)' : 'var(--border)';
+  buyLbl.style.color        = isBuy  ? 'var(--green)' : 'var(--text)';
+  sellLbl.style.borderColor = !isBuy ? 'var(--red)'   : 'var(--border)';
+  sellLbl.style.color       = !isBuy ? 'var(--red)'   : 'var(--text)';
+}
+
+function addInvTransaction(key) {
   const qty   = parseFloat(document.getElementById('inv-f-qty').value);
-  const price = parseFloat(document.getElementById('inv-f-price').value);
+  const total = parseFloat(document.getElementById('inv-f-total').value);
   const month = document.getElementById('inv-f-month').value;
   const year  = document.getElementById('inv-f-year').value;
-  const date  = `${year}-${month}`;
   const note  = document.getElementById('inv-f-note').value.trim();
-  if (!qty || !price) { alert('Molim unesite količinu i cijenu.'); return; }
+  const type  = document.getElementById('inv-type-sell')?.checked ? 'sell' : 'buy';
+
+  if (!qty || !total) { alert('Molim unesite količinu i ukupnu cijenu.'); return; }
+
+  const pricePerUnit = total / qty; // computed price per unit
   const data = invLoad(key);
-  data.push({id:Date.now(), date, qty, price, note});
+  data.push({id:Date.now(), date:`${year}-${month}`, qty, price:pricePerUnit, total, type:type, note});
   data.sort((a,b)=>b.date.localeCompare(a.date));
   invSave(key, data);
+  scheduleAutoPush();
+
   document.getElementById('inv-f-qty').value   = '';
-  document.getElementById('inv-f-price').value = '';
+  document.getElementById('inv-f-total').value = '';
   document.getElementById('inv-f-note').value  = '';
   renderInvPortfolio();
 }
+
+// Legacy
+function addInvPurchase(key) { addInvTransaction(key); }
 
 function delInvPurchase(key, id) {
   invSave(key, invLoad(key).filter(x=>x.id!==id));
