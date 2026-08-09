@@ -329,7 +329,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.2.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.3.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -435,14 +435,14 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
     <div style="margin-top:4px">
-      <div class="ni" id="nav-nekretnine" onclick="toggleSection('nekretnine-nav');goPage('nekretnine',this)">
+      <div class="ni np-h" id="nav-nekretnine" onclick="toggleNekretNav(this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
           <polyline points="9,22 9,12 15,12 15,22"/>
         </svg>Nekretnine
-        <svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        <svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto;width:14px;height:14px;flex-shrink:0"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
-      <div class="kids" id="kids-nekretnine-nav" style="display:none"></div>
+      <div class="kids" id="kids-nekretnine-nav"></div>
       <div class="ni" id="nav-godisnji" onclick="goPage('godisnji',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
@@ -468,7 +468,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot">Podaci · v3.2.0</div>
+  <div class="sb-foot">Podaci · v3.3.0</div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -564,6 +564,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <div class="ct" style="margin-bottom:14px">Moja nekretnina — praćenje režija</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Odaberite u kojoj nekretnini živite. Stvarni troškovi režija iz glavne aplikacije automatski se kopiraju u tu nekretninu.</p>
       <div id="settings-moj-dom"></div>
+      <button class="crud-add-btn" style="margin-top:12px" onclick="importRezijeToDom()">⬇️ Uvezi postojeće režije u odabranu nekretninu</button>
     </div>
     <div class="card" style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:14px">Kalkulator — troškovi po osobi</div>
@@ -924,6 +925,39 @@ function renderKalkulator() {
     ${cards}`;
 }
 
+
+
+function importRezijeToDom() {
+  const mojDom = getMojDom();
+  if(!mojDom) { alert('Najprije odaberite "Moja nekretnina" u Postavkama.'); return; }
+  const data = loadNekretnine();
+  if(!data[mojDom]) return;
+  if(!data[mojDom].values) data[mojDom].values = {};
+  if(!data[mojDom].values['rezije']) data[mojDom].values['rezije'] = {};
+
+  const REZIJE_ITEMS = ['struja','voda','plin','komunalna','pricuva','internet','hrt'];
+  let count = 0;
+
+  // Scan all localStorage keys for fa_rezije_* actual values
+  for(let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if(!k.startsWith('fa_rezije_')) continue;
+    const parts = k.split('_'); // fa, rezije, subkey, YYYY-MM
+    if(parts.length < 4) continue;
+    const subkey = parts[2];
+    const ym = parts[3];
+    if(!REZIJE_ITEMS.includes(subkey)) continue;
+    const val = parseFloat(localStorage.getItem(k)||'0')||0;
+    if(val > 0) {
+      if(!data[mojDom].values['rezije'][subkey]) data[mojDom].values['rezije'][subkey] = {};
+      data[mojDom].values['rezije'][subkey][ym] = String(val);
+      count++;
+    }
+  }
+
+  saveNekretnine(data);
+  alert('Uvezeno ' + count + ' unosa režija u nekretninu "' + data[mojDom].label + '".');
+}
 
 function renderMojDomSetting() {
   const el = document.getElementById('settings-moj-dom');
@@ -2598,6 +2632,22 @@ function saveNajam(key, val) {
 }
 
 // ── RENDER LIST (overview) ────────────────────
+function toggleNekretNav(el) {
+  const kids = document.getElementById('kids-nekretnine-nav');
+  if(!kids) return;
+  const isOpen = kids.classList.contains('open');
+  if(isOpen) {
+    kids.classList.remove('open');
+    el.classList.remove('open');
+  } else {
+    renderNekretSidebarNav();
+    kids.classList.add('open');
+    el.classList.add('open');
+    // also navigate to nekretnine page
+    goPage('nekretnine', el);
+  }
+}
+
 function renderNekretSidebarNav() {
   const el = document.getElementById('kids-nekretnine-nav');
   if(!el) return;
