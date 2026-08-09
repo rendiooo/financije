@@ -363,7 +363,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.5.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.6.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -399,7 +399,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
-  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v3.5.0</span></div>
+  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v3.6.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -2294,6 +2294,89 @@ function saveZrStanje(year, val) {
   renderGodisnji();
 }
 
+
+function renderGodisnjeSummary() {
+  const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
+  const summaryMonths = Array.from({length:12},(_,i)=>i+1);
+  const pocetnoGp = getZrStanje(gpYear) || loadPocetnoStanje();
+
+  function gpBucketSumS(bucket, month) {
+    const ym = gpYear+'-'+String(month).padStart(2,'0');
+    return ALL_CATS.reduce((total, cat) => {
+      return total + (SUBCATS[cat]||[]).reduce((s, sub) => {
+        if(getBucket(cat, sub.key) !== bucket) return s;
+        return s + (parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
+      }, 0);
+    }, 0);
+  }
+  function gpUplataS(month) {
+    const ym = gpYear+'-'+String(month).padStart(2,'0');
+    return parseFloat(localStorage.getItem('fp_zajednicki_zajednicki_uplata_'+ym)||'0')||0;
+  }
+
+  const monthData = summaryMonths.map(m => ({
+    prihod:  gpBucketSumS('prihod', m),
+    rashod:  gpBucketSumS('rashod', m),
+    zajTros: gpBucketSumS('zajednicki', m),
+    uplata:  gpUplataS(m),
+  }));
+
+  let cumZr = pocetnoGp;
+  const zrStanjePerMonth = summaryMonths.map((m,i) => {
+    cumZr += monthData[i].uplata - monthData[i].zajTros;
+    return Math.round(cumZr*100)/100;
+  });
+  const bilancaPerMonth = summaryMonths.map((m,i) => monthData[i].prihod - monthData[i].rashod);
+
+  const prihodTotal  = monthData.reduce((s,d)=>s+d.prihod, 0);
+  const rashodTotal  = monthData.reduce((s,d)=>s+d.rashod, 0);
+  const zajTrosTotal = monthData.reduce((s,d)=>s+d.zajTros, 0);
+  const zrFinal      = zrStanjePerMonth[11] !== undefined ? zrStanjePerMonth[11] : pocetnoGp;
+  const bilancaTotal = prihodTotal - rashodTotal;
+
+  function mkCell(v, col, bold) {
+    return '<td style="text-align:right;font-weight:'+(bold?700:600)+';color:'+col+';padding:5px 3px;font-size:12px">'+(v!==0?fmtFull(v):'—')+'</td>';
+  }
+
+  // Update summary table rows
+  const tbody = document.querySelector('#gp-summary-table tbody');
+  if(tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--green)">💰 Planirani prihod</td>
+        ${monthData.map(d=>mkCell(d.prihod,'var(--green)',false)).join('')}
+        <td style="text-align:right;font-weight:700;color:var(--green);padding:0 8px;font-size:12px">${prihodTotal>0?fmtFull(prihodTotal):'—'}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--red)">📤 Planirani rashod</td>
+        ${monthData.map(d=>mkCell(d.rashod,'var(--red)',false)).join('')}
+        <td style="text-align:right;font-weight:700;color:var(--red);padding:0 8px;font-size:12px">${rashodTotal>0?fmtFull(rashodTotal):'—'}</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--red)">🏠 Planirani zajednički troškovi</td>
+        ${monthData.map(d=>mkCell(d.zajTros,'var(--red)',false)).join('')}
+        <td style="text-align:right;font-weight:700;color:var(--red);padding:0 8px;font-size:12px">${zajTrosTotal>0?fmtFull(zajTrosTotal):'—'}</td>
+      </tr>
+      <tr style="border-top:1.5px solid var(--border)">
+        <td style="padding:6px 10px;font-size:12px;font-weight:700">📊 Planirano stanje ZR</td>
+        ${zrStanjePerMonth.map(v=>mkCell(v,v>=0?'var(--green)':'var(--red)',true)).join('')}
+        <td style="text-align:right;font-weight:700;padding:0 8px;font-size:12px;color:${zrFinal>=0?'var(--green)':'var(--red)'}">${fmtFull(zrFinal)}</td>
+      </tr>
+      <tr style="border-top:1.5px solid var(--border)">
+        <td style="padding:6px 10px;font-size:12px;font-weight:700">⚖️ Bilanca</td>
+        ${bilancaPerMonth.map(v=>mkCell(v,v>=0?'var(--green)':'var(--red)',true)).join('')}
+        <td style="text-align:right;font-weight:700;padding:0 8px;font-size:12px;color:${bilancaTotal>=0?'var(--green)':'var(--red)'}">${fmtFull(bilancaTotal)}</td>
+      </tr>`;
+  }
+
+  // Update ZR chart
+  window._gpZrChartData = zrStanjePerMonth;
+  if(window._gpZrChart) {
+    window._gpZrChart.data.datasets[0].data = zrStanjePerMonth;
+    window._gpZrChart.update();
+  }
+}
+
 function renderGodisnji() {
   const body = document.getElementById('godisnji-body');
   if(!body) return;
@@ -2552,6 +2635,7 @@ function renderGodisnji() {
   }, 100);
 }
 
+let _gpRenderTimeout = null;
 function gpSaveSubcat(cat, subkey, month, val, inp) {
   const ym = gpYear + '-' + String(month).padStart(2,'0');
   const k = 'fp_'+cat+'_'+subkey+'_'+ym;
@@ -2560,6 +2644,12 @@ function gpSaveSubcat(cat, subkey, month, val, inp) {
   else localStorage.removeItem(k);
   inp.className = 'gp-inp' + (num > 0 ? ' has-val' : '');
   scheduleAutoPush();
+  // Debounced re-render so summaries/chart update automatically
+  clearTimeout(_gpRenderTimeout);
+  _gpRenderTimeout = setTimeout(() => {
+    // Re-render only summary + chart, not whole table (preserve focus)
+    renderGodisnjeSummary();
+  }, 600);
 }
 
 
@@ -2706,24 +2796,24 @@ function saveNajam(key, val, year) {
 }
 
 function getNajam(nekretData, year) {
+  // Strict per-year: only return value if explicitly set for that year
   if(nekretData.najam_by_year && nekretData.najam_by_year[year] !== undefined)
     return nekretData.najam_by_year[year];
-  return nekretData.najam || 0;
+  return 0; // no fallback — each year must be explicitly set
 }
 
 // ── RENDER LIST (overview) ────────────────────
 function toggleNekretNav(el) {
   const kids = document.getElementById('kids-nekretnine-nav');
   if(!kids) return;
-  const isOpen = kids.classList.contains('open');
+  const isOpen = el.classList.contains('nekret-open');
   if(isOpen) {
-    kids.classList.remove('open');
-    el.classList.remove('open');
+    kids.style.display = 'none';
+    el.classList.remove('nekret-open');
   } else {
     renderNekretSidebarNav();
-    kids.classList.add('open');
-    el.classList.add('open');
-    // also navigate to nekretnine page
+    kids.style.display = 'block';
+    el.classList.add('nekret-open');
     goPage('nekretnine', el);
   }
 }
