@@ -2326,6 +2326,10 @@ function renderGodisnji() {
       </table>
     </div>`;
 
+  // Store chart data globally for setTimeout access
+  window._gpZrChartData = zrChartData;
+  window._gpZrLabels = MONTHS_SHORT.slice();
+
   // Render ZR chart
   setTimeout(() => {
     const ctx = document.getElementById('gpZrChart');
@@ -2334,10 +2338,10 @@ function renderGodisnji() {
     window._gpZrChart = new Chart(ctx, {
       type: 'line',
       data: {
-        labels: MONTHS_SHORT,
+        labels: window._gpZrLabels,
         datasets: [{
           label: 'Stanje ZR',
-          data: ${JSON.stringify(zrChartData)},
+          data: window._gpZrChartData,
           borderColor: '#3DBE7A',
           backgroundColor: 'rgba(61,190,122,0.1)',
           borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#3DBE7A',
@@ -2348,11 +2352,11 @@ function renderGodisnji() {
         responsive: true, maintainAspectRatio: false,
         plugins: {
           legend: {display:false},
-          tooltip: {callbacks:{label:ctx=>' '+fmtFull(ctx.parsed.y)}}
+          tooltip: {callbacks:{label:function(ctx){ return ' '+fmtFull(ctx.parsed.y); }}}
         },
         scales: {
           x: {grid:{display:false}, ticks:{font:{size:11}}},
-          y: {ticks:{callback:v=>v.toLocaleString('hr-HR',{maximumFractionDigits:0})+'€',font:{size:10}}}
+          y: {ticks:{callback:function(v){ return v.toLocaleString('hr-HR',{maximumFractionDigits:0})+'€'; },font:{size:10}}}
         }
       }
     });
