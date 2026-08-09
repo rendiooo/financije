@@ -434,6 +434,12 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
     <div style="margin-top:4px">
+      <div class="ni" id="nav-nekretnine" onclick="goPage('nekretnine',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9,22 9,12 15,12 15,22"/>
+        </svg>Nekretnine
+      </div>
       <div class="ni" id="nav-godisnji" onclick="goPage('godisnji',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
@@ -579,6 +585,12 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <div id="settings-portfolios"></div>
     </div>
     <div id="settings-body"></div>
+  </div>
+
+  <!-- NEKRETNINE -->
+  <div id="page-nekretnine" class="page">
+    <div class="ph"><h2>Upravljanje nekretninama</h2><p>Praćenje prihoda i troškova nekretnina</p></div>
+    <div id="nekret-body"></div>
   </div>
 
   <!-- GODIŠNJI PLAN -->
@@ -1424,6 +1436,7 @@ function goPage(id, el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(id==='dashboard')   { renderDash(); pullAndRender(); return; }
+  if(id==='nekretnine') { renderNekretnine(); return; }
   if(id==='godisnji')    { renderGodisnji(); return; }
   if(id==='kalkulator')  { renderKalkulator(); return; }
   if(id==='investments') { renderInvPortfolio(); return; }
@@ -2193,20 +2206,63 @@ function renderGodisnji() {
     </tr>`;
   });
 
-  // Grand total row
-  const grandCells = MONTHS_SHORT.map((_,mi) => {
-    const ym = gpYear+'-'+String(mi+1).padStart(2,'0');
-    const total = CATS.reduce((s,cat)=>s+(SUBCATS[cat]||[]).reduce((ss,sub)=>{
-      return ss+(parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
-    },0),0);
-    return `<td style="text-align:right;font-weight:700;padding:8px 3px;color:var(--green)">${total>0?fmtFull(total):'—'}</td>`;
-  }).join('');
-  const grandTotal = CATS.reduce((s,cat)=>s+Array.from({length:12},(_,i)=>{
-    const ym=gpYear+'-'+String(i+1).padStart(2,'0');
-    return (SUBCATS[cat]||[]).reduce((ss,sub)=>{
-      return ss+(parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
+  // ── Dashboard-style monthly summary rows (Prihod, Rashod, ZR, Stanje) ──
+  const RASHODI_CATS = CATS.filter(c => c !== 'prihodi' && c !== 'zajednicki');
+
+  function gpMonthSum(cat, month) {
+    const ym = gpYear+'-'+String(month).padStart(2,'0');
+    return (SUBCATS[cat]||[]).reduce((s,sub)=>{
+      return s+(parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
     },0);
-  }).reduce((a,b)=>a+b,0),0);
+  }
+  function gpMonthZaj(month) {
+    const ym = gpYear+'-'+String(month).padStart(2,'0');
+    return (SUBCATS['zajednicki']||[]).reduce((s,sub)=>{
+      if(sub.key==='zajednicki_uplata') return s;
+      const bk = getBucket('zajednicki',sub.key);
+      if(bk!=='zajednicki') return s;
+      return s+(parseFloat(localStorage.getItem('fp_zajednicki_'+sub.key+'_'+ym)||'0')||0);
+    },0) + CATS.filter(c=>c!=='prihodi'&&c!=='zajednicki').reduce((s,cat)=>{
+      return s+(SUBCATS[cat]||[]).reduce((ss,sub)=>{
+        if(getBucket(cat,sub.key)!=='zajednicki') return ss;
+        return ss+(parseFloat(localStorage.getItem('fp_'+cat+'_'+sub.key+'_'+ym)||'0')||0);
+      },0);
+    },0);
+  }
+  function gpMonthUplata(month) {
+    const ym = gpYear+'-'+String(month).padStart(2,'0');
+    return parseFloat(localStorage.getItem('fp_zajednicki_zajednicki_uplata_'+ym)||'0')||0;
+  }
+
+  const pocetnoGp = getZrStanje(gpYear) || loadPocetnoStanje();
+  const summaryMonths = Array.from({length:12},(_,i)=>i+1);
+
+  const prihodRow = summaryMonths.map(m=>{
+    const v=gpMonthSum('prihodi',m);
+    return `<td style="text-align:right;font-weight:600;color:var(--green);padding:6px 3px">${v>0?fmtFull(v):'—'}</td>`;
+  }).join('');
+  const rashodRow = summaryMonths.map(m=>{
+    const v=RASHODI_CATS.reduce((s,c)=>s+gpMonthSum(c,m),0);
+    return `<td style="text-align:right;font-weight:600;color:var(--red);padding:6px 3px">${v>0?fmtFull(v):'—'}</td>`;
+  }).join('');
+
+  // ZR stanje kumulativno
+  let cumZr = pocetnoGp;
+  const zrStanjeRow = summaryMonths.map(m=>{
+    cumZr += gpMonthUplata(m) - gpMonthZaj(m);
+    const col = cumZr>=0?'var(--green)':'var(--red)';
+    return `<td style="text-align:right;font-weight:700;color:${col};padding:6px 3px">${fmtFull(Math.round(cumZr*100)/100)}</td>`;
+  }).join('');
+
+  // ZR line chart data
+  let cumZr2 = pocetnoGp;
+  const zrChartData = summaryMonths.map(m=>{
+    cumZr2 += gpMonthUplata(m) - gpMonthZaj(m);
+    return Math.round(cumZr2*100)/100;
+  });
+
+  const prihodTotal = summaryMonths.reduce((s,m)=>s+gpMonthSum('prihodi',m),0);
+  const rashodTotal = summaryMonths.reduce((s,m)=>s+RASHODI_CATS.reduce((ss,c)=>ss+gpMonthSum(c,m),0),0);
 
   const zrVal = getZrStanje(gpYear);
 
@@ -2215,14 +2271,15 @@ function renderGodisnji() {
       <select style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:14px" onchange="gpYear=+this.value;renderGodisnji()">
         ${yearOpts}
       </select>
-      <span style="font-size:12px;color:var(--muted)">Planirani troškovi za ${gpYear}.</span>
+      <span style="font-size:12px;color:var(--muted)">Plan za ${gpYear}.</span>
     </div>
+
     <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">
           💳 Stvarno stanje zajedničkog računa na početku ${gpYear}.
         </div>
-        <div style="font-size:11px;color:var(--muted)">Koristite za simulacije i planiranje — nadjačava automatski izračun</div>
+        <div style="font-size:11px;color:var(--muted)">Nadjačava automatski izračun za simulacije</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-left:auto">
         <input type="number" min="0" step="0.01" placeholder="—"
@@ -2231,9 +2288,32 @@ function renderGodisnji() {
           onchange="saveZrStanje(${gpYear},this.value)"
           onfocus="this.select()">
         <span style="color:var(--muted)">€</span>
-        ${zrVal>0?`<span style="font-size:12px;color:var(--green);font-weight:600">${fmtFull(zrVal)}</span>`:''}
       </div>
     </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="ct" style="margin-bottom:10px">Simulacija stanja zajedničkog računa — ${gpYear}.</div>
+      <div style="height:220px"><canvas id="gpZrChart"></canvas></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="ct" style="margin-bottom:10px">Sažetak po mjesecima</div>
+      <div class="gp-wrap">
+        <table class="gp-table">
+          <thead><tr>
+            <th style="text-align:left;min-width:130px"></th>
+            ${MONTHS_SHORT.map(m=>`<th>${m}</th>`).join('')}
+            <th>Godišnje</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:6px 10px;font-size:13px;color:var(--green);font-weight:600">💰 Prihodi</td>${prihodRow}<td style="text-align:right;font-weight:700;color:var(--green);padding:0 8px">${fmtFull(prihodTotal)}</td></tr>
+            <tr><td style="padding:6px 10px;font-size:13px;color:var(--red);font-weight:600">📤 Rashodi</td>${rashodRow}<td style="text-align:right;font-weight:700;color:var(--red);padding:0 8px">${fmtFull(rashodTotal)}</td></tr>
+            <tr style="border-top:2px solid var(--border)"><td style="padding:6px 10px;font-size:13px;font-weight:700">📊 ZR stanje</td>${zrStanjeRow}<td style="padding:0 8px"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="gp-wrap">
       <table class="gp-table">
         <thead><tr>
@@ -2242,13 +2322,40 @@ function renderGodisnji() {
           <th style="min-width:80px">Godišnje</th>
         </tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr style="border-top:2px solid var(--border)">
-          <td style="font-weight:700;padding:8px 10px">UKUPNO</td>
-          ${grandCells}
-          <td style="text-align:right;font-weight:700;padding:8px;color:var(--green)">${grandTotal>0?fmtFull(grandTotal):'—'}</td>
-        </tr></tfoot>
       </table>
     </div>`;
+
+  // Render ZR chart
+  setTimeout(() => {
+    const ctx = document.getElementById('gpZrChart');
+    if(!ctx) return;
+    if(window._gpZrChart) { window._gpZrChart.destroy(); }
+    window._gpZrChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: MONTHS_SHORT,
+        datasets: [{
+          label: 'Stanje ZR',
+          data: ${JSON.stringify(zrChartData)},
+          borderColor: '#3DBE7A',
+          backgroundColor: 'rgba(61,190,122,0.1)',
+          borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#3DBE7A',
+          tension: 0.3, fill: true
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: {display:false},
+          tooltip: {callbacks:{label:ctx=>' '+fmtFull(ctx.parsed.y)}}
+        },
+        scales: {
+          x: {grid:{display:false}, ticks:{font:{size:11}}},
+          y: {ticks:{callback:v=>v.toLocaleString('hr-HR',{maximumFractionDigits:0})+'€',font:{size:10}}}
+        }
+      }
+    });
+  }, 100);
 }
 
 function gpSaveSubcat(cat, subkey, month, val, inp) {
@@ -2259,6 +2366,395 @@ function gpSaveSubcat(cat, subkey, month, val, inp) {
   else localStorage.removeItem(k);
   inp.className = 'gp-inp' + (num > 0 ? ' has-val' : '');
   scheduleAutoPush();
+}
+
+
+// ══════════════════════════════════════════════
+// NEKRETNINE MODULE
+// ══════════════════════════════════════════════
+const NEKRET_KEY = 'nekret_data_v1';
+let currentNekret = null; // key of currently viewed property
+
+// ── DATA ──────────────────────────────────────
+function loadNekretnine() {
+  try {
+    const s = localStorage.getItem(NEKRET_KEY);
+    return s ? JSON.parse(s) : {};
+  } catch(e) { return {}; }
+}
+function saveNekretnine(data) {
+  localStorage.setItem(NEKRET_KEY, JSON.stringify(data));
+  scheduleAutoPush();
+}
+function getNekret(key) {
+  return loadNekretnine()[key] || null;
+}
+
+// ── DEFAULT CATEGORIES ────────────────────────
+const NEKRET_CATS_DEFAULT = [
+  { key: 'rezije',    label: 'Režije',              icon: '💡',
+    items: [
+      { key: 'struja',       label: 'Struja',            color: '#C47A1E' },
+      { key: 'voda',         label: 'Voda',              color: '#2A6BAD' },
+      { key: 'plin',         label: 'Plin',              color: '#D94F3D' },
+      { key: 'komunalna',    label: 'Komunalna naknada', color: '#2D9E6B' },
+      { key: 'pricuva',      label: 'Pričuva',           color: '#8B5CF6' },
+      { key: 'internet',     label: 'Internet',          color: '#1A9490' },
+      { key: 'hrt',          label: 'HRT',               color: '#71717A' },
+    ]
+  },
+  { key: 'kredit',    label: 'Kredit / Najam',      icon: '🏦',
+    items: [
+      { key: 'kredit',       label: 'Kredit',            color: '#B8860B' },
+      { key: 'osiguranje',   label: 'Osiguranje',        color: '#5B7ED6' },
+    ]
+  },
+  { key: 'popravci',  label: 'Popravci i namještaj', icon: '🔧',
+    items: [
+      { key: 'popravci',     label: 'Popravci',          color: '#D94F3D' },
+      { key: 'namjestaj',    label: 'Namještaj',         color: '#C47A1E' },
+      { key: 'ostalo',       label: 'Ostalo',            color: '#71717A' },
+    ]
+  },
+];
+
+function getNekretCats(nekretKey) {
+  const d = getNekret(nekretKey);
+  return (d && d.cats) ? d.cats : JSON.parse(JSON.stringify(NEKRET_CATS_DEFAULT));
+}
+
+function nekretPeriodKey(year, month) {
+  return year + '-' + String(month).padStart(2,'0');
+}
+
+function getNekretVal(nekretKey, cat, item, year, month) {
+  const d = getNekret(nekretKey);
+  const ym = nekretPeriodKey(year, month);
+  return (d && d.values && d.values[cat] && d.values[cat][item] && d.values[cat][item][ym])
+    ? parseFloat(d.values[cat][item][ym]) : 0;
+}
+
+function setNekretVal(nekretKey, cat, item, year, month, val) {
+  const data = loadNekretnine();
+  if(!data[nekretKey]) return;
+  if(!data[nekretKey].values) data[nekretKey].values = {};
+  if(!data[nekretKey].values[cat]) data[nekretKey].values[cat] = {};
+  if(!data[nekretKey].values[cat][item]) data[nekretKey].values[cat][item] = {};
+  const ym = nekretPeriodKey(year, month);
+  if(val > 0) data[nekretKey].values[cat][item][ym] = String(val);
+  else delete data[nekretKey].values[cat][item][ym];
+  saveNekretnine(data);
+}
+
+function getNajamPlaceno(nekretKey, year, month) {
+  const d = getNekret(nekretKey);
+  const ym = nekretPeriodKey(year, month);
+  return !!(d && d.najam_placeno && d.najam_placeno[ym]);
+}
+
+function toggleNajamPlaceno(nekretKey, year, month) {
+  const data = loadNekretnine();
+  if(!data[nekretKey]) return;
+  if(!data[nekretKey].najam_placeno) data[nekretKey].najam_placeno = {};
+  const ym = nekretPeriodKey(year, month);
+  data[nekretKey].najam_placeno[ym] = !data[nekretKey].najam_placeno[ym];
+  saveNekretnine(data);
+  renderNekretPage(nekretKey);
+}
+
+// ── ADD / REMOVE PROPERTY ─────────────────────
+function addNekretnina(label) {
+  const key = 'nekret_' + Date.now();
+  const data = loadNekretnine();
+  data[key] = {
+    key, label,
+    najam: 0,
+    cats: JSON.parse(JSON.stringify(NEKRET_CATS_DEFAULT)),
+    values: {},
+    najam_placeno: {},
+  };
+  saveNekretnine(data);
+  renderNekretList();
+  setTimeout(() => renderNekretPage(key), 100);
+}
+
+function removeNekretnina(key) {
+  const d = getNekret(key);
+  if(!confirm('Sigurno želite obrisati nekretninu "' + (d?.label||key) + '"? Svi podaci će biti izgubljeni.')) return;
+  const data = loadNekretnine();
+  delete data[key];
+  saveNekretnine(data);
+  currentNekret = null;
+  renderNekretList();
+}
+
+function renameNekretnina(key) {
+  const d = getNekret(key);
+  const newLabel = prompt('Novi naziv nekretnine:', d?.label || key);
+  if(!newLabel || !newLabel.trim()) return;
+  const data = loadNekretnine();
+  if(data[key]) { data[key].label = newLabel.trim(); saveNekretnine(data); }
+  renderNekretList();
+  if(currentNekret === key) renderNekretPage(key);
+}
+
+function saveNajam(key, val) {
+  const data = loadNekretnine();
+  if(data[key]) { data[key].najam = parseFloat(val)||0; saveNekretnine(data); }
+}
+
+// ── RENDER LIST (overview) ────────────────────
+function renderNekretList() {
+  const body = document.getElementById('nekret-body');
+  if(!body) return;
+  const data = loadNekretnine();
+  const keys = Object.keys(data);
+  if(!keys.length) {
+    body.innerHTML = `<div class="empty">Nemate dodanih nekretnina. Kliknite "+ Dodaj nekretninu" da počnete.</div>
+    <button class="crud-add-btn crud-add-main" onclick="promptAddNekretnina()">+ Dodaj nekretninu</button>`;
+    return;
+  }
+  body.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:20px">
+      ${keys.map(k => {
+        const n = data[k];
+        const ym = nekretPeriodKey(selYear, selMonth);
+        const placeno = n.najam_placeno && n.najam_placeno[ym];
+        const cats = n.cats || NEKRET_CATS_DEFAULT;
+        const monthTotal = cats.reduce((s,cat)=>s+cat.items.reduce((ss,item)=>
+          ss+getNekretVal(k,cat.key,item.key,selYear,selMonth),0),0);
+        return `<div class="card" style="cursor:pointer;border-left:3px solid var(--accent2)" onclick="renderNekretPage('${k}')">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="font-size:16px;font-weight:700">${n.label}</div>
+            <div style="display:flex;gap:6px">
+              <button class="crud-btn" onclick="event.stopPropagation();renameNekretnina('${k}')">✏️</button>
+              <button class="crud-btn crud-del" onclick="event.stopPropagation();removeNekretnina('${k}')">🗑</button>
+            </div>
+          </div>
+          <div style="margin-top:12px;font-size:13px;color:var(--muted)">Najam</div>
+          <div style="font-size:20px;font-weight:700;color:var(--green)">${n.najam>0?fmtFull(n.najam):'—'}</div>
+          <div style="margin-top:4px">
+            <span style="font-size:12px;padding:3px 10px;border-radius:20px;font-weight:600;background:${placeno?'rgba(61,190,122,.15)':'rgba(224,82,82,.12)'};color:${placeno?'var(--green)':'var(--red)'}">${placeno?'✓ Plaćeno':'✗ Nije plaćeno'}</span>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--muted)">Troškovi ovaj mjesec: <strong>${monthTotal>0?fmtFull(monthTotal):'—'}</strong></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="crud-add-btn crud-add-main" onclick="promptAddNekretnina()">+ Dodaj nekretninu</button>`;
+}
+
+// ── RENDER SINGLE PROPERTY ────────────────────
+let nekretYear = new Date().getFullYear();
+
+function renderNekretPage(key) {
+  currentNekret = key;
+  const n = getNekret(key);
+  if(!n) { renderNekretList(); return; }
+  const body = document.getElementById('nekret-body');
+  if(!body) return;
+  const cats = n.cats || JSON.parse(JSON.stringify(NEKRET_CATS_DEFAULT));
+  const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
+
+  const yearOpts = [2024,2025,2026,2027,2028,2029,2030].map(y =>
+    `<option value="${y}" ${y===nekretYear?'selected':''}>${y}</option>`
+  ).join('');
+
+  // Najam plaćenost po mjesecima za odabranu godinu
+  const najamRow = MONTHS_SHORT.map((mn,mi) => {
+    const m = mi+1;
+    const placeno = getNajamPlaceno(key, nekretYear, m);
+    return `<td style="text-align:center;padding:4px 2px">
+      <label style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px">
+        <input type="checkbox" ${placeno?'checked':''} onchange="toggleNajamPlaceno('${key}',${nekretYear},${m})"
+          style="width:16px;height:16px;accent-color:var(--green);cursor:pointer">
+        <span style="font-size:10px;color:${placeno?'var(--green)':'var(--muted)'}">${placeno?'✓':'—'}</span>
+      </label>
+    </td>`;
+  }).join('');
+
+  // Yearly totals per category for dashboard cards
+  const yearlyNajam = n.najam * 12;
+  const yearlyTroskovi = cats.reduce((s,cat)=>s+cat.items.reduce((ss,item)=>
+    ss+Array.from({length:12},(_,i)=>getNekretVal(key,cat.key,item.key,nekretYear,i+1)).reduce((a,b)=>a+b,0),0),0);
+
+  // Build table rows
+  let tableRows = '';
+  cats.forEach(cat => {
+    // Category header
+    tableRows += `<tr style="background:var(--tb-head)">
+      <td colspan="${14}" style="padding:8px 10px;font-size:12px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.4px">
+        ${cat.icon||'📋'} ${cat.label}
+      </td>
+    </tr>`;
+
+    cat.items.forEach(item => {
+      const cells = MONTHS_SHORT.map((mn,mi) => {
+        const m = mi+1;
+        const val = getNekretVal(key,cat.key,item.key,nekretYear,m);
+        return `<td style="padding:2px 3px">
+          <input class="gp-inp${val>0?' has-val':''}"
+            type="number" min="0" step="0.01" placeholder="—"
+            value="${val>0?val:''}"
+            onfocus="this.select()"
+            onchange="setNekretVal('${key}','${cat.key}','${item.key}',${nekretYear},${mi+1},parseFloat(this.value)||0);renderNekretPage('${key}')">
+        </td>`;
+      }).join('');
+
+      const rowTotal = Array.from({length:12},(_,i)=>getNekretVal(key,cat.key,item.key,nekretYear,i+1)).reduce((a,b)=>a+b,0);
+      tableRows += `<tr>
+        <td style="padding:7px 10px;display:flex;align-items:center;gap:6px;white-space:nowrap">
+          <span style="width:6px;height:6px;border-radius:50%;background:${item.color};display:inline-block;flex-shrink:0"></span>
+          ${item.label}
+        </td>
+        ${cells}
+        <td style="text-align:right;font-weight:600;font-size:12px;white-space:nowrap;padding:0 8px;color:var(--muted)">${rowTotal>0?fmtFull(rowTotal):'—'}</td>
+      </tr>`;
+    });
+
+    // Cat subtotal
+    const catCells = MONTHS_SHORT.map((_,mi)=>{
+      const total = cat.items.reduce((s,item)=>s+getNekretVal(key,cat.key,item.key,nekretYear,mi+1),0);
+      return `<td style="text-align:right;font-weight:600;font-size:12px;padding:5px 3px;color:var(--accent2)">${total>0?fmtFull(total):'—'}</td>`;
+    }).join('');
+    const catTotal = cat.items.reduce((s,item)=>s+Array.from({length:12},(_,i)=>getNekretVal(key,cat.key,item.key,nekretYear,i+1)).reduce((a,b)=>a+b,0),0);
+    tableRows += `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--accent2)">Subtotal</td>
+      ${catCells}
+      <td style="text-align:right;font-weight:700;font-size:12px;padding:0 8px;color:var(--accent2)">${catTotal>0?fmtFull(catTotal):'—'}</td>
+    </tr>`;
+  });
+
+  // Chart — last 12 months stacked bar
+  const chartMonths = Array.from({length:12},(_,i)=>{
+    const d = new Date(selYear, selMonth-1-i, 1);
+    return {y:d.getFullYear(), m:d.getMonth()+1, label:(d.getMonth()+1)+'/'+d.getFullYear()};
+  }).reverse();
+  const chartDatasets = cats.map(cat=>({
+    label: cat.label,
+    data: chartMonths.map(({y,m})=>cat.items.reduce((s,item)=>s+getNekretVal(key,cat.key,item.key,y,m),0)),
+    backgroundColor: (cat.items[0]?.color||'#888')+'99',
+    borderColor: cat.items[0]?.color||'#888',
+    borderWidth:1,
+  }));
+
+  body.innerHTML = `
+    <button onclick="currentNekret=null;renderNekretList()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px;padding:0;margin-bottom:16px">← Sve nekretnine</button>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+      <div class="ph" style="margin-bottom:0"><h2>${n.label}</h2></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <select style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:14px"
+          onchange="nekretYear=+this.value;renderNekretPage('${key}')">
+          ${yearOpts}
+        </select>
+        <button class="crud-btn" onclick="renameNekretnina('${key}')">✏️</button>
+      </div>
+    </div>
+
+    <!-- Dashboard kartice -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px">
+      <div class="mc" style="border-left:3px solid var(--green)">
+        <div class="mc-l">Najamnina / god.</div>
+        <div class="mc-v" style="color:var(--green)">${n.najam>0?fmtFull(yearlyNajam):'—'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">${n.najam>0?fmtFull(n.najam)+'/mj':''}</div>
+      </div>
+      <div class="mc" style="border-left:3px solid var(--red)">
+        <div class="mc-l">Troškovi ${nekretYear}.</div>
+        <div class="mc-v neg">${yearlyTroskovi>0?fmtFull(yearlyTroskovi):'—'}</div>
+      </div>
+      <div class="mc" style="border-left:3px solid var(--accent2)">
+        <div class="mc-l">Neto prihod ${nekretYear}.</div>
+        <div class="mc-v" style="color:${(yearlyNajam-yearlyTroskovi)>=0?'var(--green)':'var(--red)'}">${n.najam>0||yearlyTroskovi>0?fmtFull(yearlyNajam-yearlyTroskovi):'—'}</div>
+      </div>
+    </div>
+
+    <!-- Iznos najma -->
+    <div class="card" style="margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Iznos najamnine</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input type="number" min="0" step="0.01" placeholder="0.00"
+          value="${n.najam>0?n.najam:''}"
+          style="width:130px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:15px;font-weight:600;text-align:right"
+          onfocus="this.select()"
+          onchange="saveNajam('${key}',this.value);renderNekretPage('${key}')">
+        <span style="color:var(--muted)">€/mj</span>
+      </div>
+    </div>
+
+    <!-- Plaćenost najma po mjesecima -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ct" style="margin-bottom:10px">Status najamnine — ${nekretYear}.</div>
+      <div class="gp-wrap">
+        <table class="gp-table">
+          <thead><tr>
+            <th style="text-align:left">Stavka</th>
+            ${MONTHS_SHORT.map(m=>`<th>${m}</th>`).join('')}
+            <th>Godišnje</th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td style="padding:7px 10px;white-space:nowrap;font-size:13px">💳 Najam</td>
+              ${najamRow}
+              <td style="text-align:right;font-weight:600;font-size:12px;padding:0 8px;color:var(--green)">${n.najam>0?fmtFull(yearlyNajam):'—'}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Graf zadnjih 12 mj -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ct" style="margin-bottom:10px">Troškovi — zadnjih 12 mjeseci</div>
+      <div style="height:200px"><canvas id="nekretChart_${key.replace(/[^a-z0-9]/gi,'_')}"></canvas></div>
+    </div>
+
+    <!-- Godišnja tablica troškova -->
+    <div class="card" style="margin-bottom:14px">
+      <div class="ct" style="margin-bottom:10px">Troškovi — ${nekretYear}.</div>
+      <div class="gp-wrap">
+        <table class="gp-table">
+          <thead><tr>
+            <th style="text-align:left;min-width:150px">Stavka</th>
+            ${MONTHS_SHORT.map(m=>`<th style="min-width:68px">${m}</th>`).join('')}
+            <th style="min-width:70px">Godišnje</th>
+          </tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  setTimeout(() => {
+    const ctx = document.getElementById('nekretChart_'+key.replace(/[^a-z0-9]/gi,'_'));
+    if(!ctx) return;
+    const chartId = '_nekretChart_'+key;
+    if(window[chartId]) window[chartId].destroy();
+    window[chartId] = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: chartMonths.map(({label})=>label), datasets: chartDatasets },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:11}}}},
+        scales:{
+          x:{stacked:true,grid:{display:false},ticks:{font:{size:10}}},
+          y:{stacked:true,ticks:{callback:v=>v.toLocaleString('hr-HR',{maximumFractionDigits:0})+'€',font:{size:10}}}
+        }
+      }
+    });
+  }, 100);
+}
+
+function promptAddNekretnina() {
+  const label = prompt('Naziv nekretnine (npr. "Stan Zagreb", "Kuća Rijeka"):');
+  if(!label || !label.trim()) return;
+  addNekretnina(label.trim());
+}
+
+function renderNekretnine() {
+  refreshStructure();
+  if(currentNekret) renderNekretPage(currentNekret);
+  else renderNekretList();
 }
 
 // ══════════════════════════════════════════════
@@ -2360,7 +2856,7 @@ function setSyncStatus(state, msg) {
 
 function collectLocalData() {
   const data = {};
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1'];
   for(let i=0;i<localStorage.length;i++) {
     const k = localStorage.key(i);
     if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
@@ -2369,7 +2865,7 @@ function collectLocalData() {
 }
 
 function applyCloudData(data) {
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1'];
   Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
     .forEach(k=>localStorage.removeItem(k));
   Object.entries(data).forEach(([k,v])=>{ if(k!=='_updated') localStorage.setItem(k,v); });
