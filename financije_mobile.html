@@ -365,7 +365,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.1.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.3.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -401,7 +401,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
-  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v4.1.0</span></div>
+  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v4.3.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -1944,7 +1944,19 @@ function addInvTransaction(key) {
 function addInvPurchase(key) { addInvTransaction(key); }
 
 function delInvPurchase(key, id) {
-  invSave(key, invLoad(key).filter(x=>x.id!==id));
+  const data = invLoad(key);
+  const item = data.find(x=>x.id===id);
+  if(!item) return;
+  const p = INV_PORTFOLIOS_DEF[key];
+  const isSell = item.type === 'sell';
+  const amt = item.total || item.qty*item.price;
+  const desc = (isSell?'📉 Prodaja':'📈 Kupnja') + ' — ' +
+    item.qty.toFixed(3) + ' ' + (p?.unitLabel||'jed') + ' za ' +
+    amt.toLocaleString('hr-HR',{style:'currency',currency:'EUR'}) +
+    ' (' + item.date + ')';
+  if(!confirm('Obrisati transakciju?\n\n' + desc)) return;
+  invSave(key, data.filter(x=>x.id!==id));
+  scheduleAutoPush();
   renderInvPortfolio();
 }
 
@@ -1973,10 +1985,16 @@ function renderDash(){
 
   const totInv  = Object.keys(getActivePortfolios()).reduce((s,key)=>{
     const d=invLoad(key); const cp=priceLoad(key);
-    return s+d.reduce((a,i)=>a+i.qty,0)*cp;
+    // subtract sold quantities
+    const netQty = d.reduce((a,i)=> i.type==='sell' ? a-i.qty : a+i.qty, 0);
+    return s + netQty * cp;
   },0);
   const totInvd = Object.keys(getActivePortfolios()).reduce((s,key)=>{
-    return s+invLoad(key).reduce((a,i)=>a+i.qty*i.price,0);
+    // invested = buys - sells (what we put in minus what we got back)
+    return s+invLoad(key).reduce((a,i)=>{
+      const amt = i.total || i.qty*i.price;
+      return i.type==='sell' ? a-amt : a+amt;
+    },0);
   },0);
   const invG = totInv-totInvd;
 
@@ -2043,8 +2061,8 @@ function renderDash(){
       ${Object.entries(getActivePortfolios()).map(([key,p])=>{
         const d = invLoad(key);
         const cp = priceLoad(key);
-        const qty = d.reduce((s,i)=>s+i.qty,0);
-        const invested = d.reduce((s,i)=>s+i.qty*i.price,0);
+        const qty = d.reduce((s,i)=> i.type==='sell' ? s-i.qty : s+i.qty, 0);
+        const invested = d.reduce((s,i)=>{ const amt=i.total||i.qty*i.price; return i.type==='sell'?s-amt:s+amt; },0);
         const curVal = qty * cp;
         const gain = curVal - invested;
         const gainPct = invested > 0 ? ((gain/invested)*100).toFixed(2) : '0.00';
