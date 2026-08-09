@@ -363,7 +363,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.1.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.2.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -399,7 +399,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
-  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v2.4.1</span></div>
+  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v3.2.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -480,12 +480,14 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
     <div style="margin-top:4px">
-      <div class="ni" id="nav-nekretnine" onclick="goPage('nekretnine',this)">
+      <div class="ni" id="nav-nekretnine" onclick="toggleSection('nekretnine-nav');goPage('nekretnine',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
           <polyline points="9,22 9,12 15,12 15,22"/>
         </svg>Nekretnine
+        <svg class="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
+      <div class="kids" id="kids-nekretnine-nav" style="display:none"></div>
       <div class="ni" id="nav-godisnji" onclick="goPage('godisnji',this)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
@@ -599,6 +601,11 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
         <span style="font-size:14px;color:var(--muted);white-space:nowrap">€</span>
       </div>
       <p style="font-size:12px;color:var(--muted);margin-top:8px">Ovo se koristi za izračun planiranog i stvarnog stanja zajedničkog računa na dashboardu.</p>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:14px">Moja nekretnina — praćenje režija</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Odaberite u kojoj nekretnini živite. Stvarni troškovi režija iz glavne aplikacije automatski se kopiraju u tu nekretninu.</p>
+      <div id="settings-moj-dom"></div>
     </div>
     <div class="card" style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:14px">Kalkulator — troškovi po osobi</div>
@@ -954,6 +961,31 @@ function renderKalkulator() {
     ${cards}`;
 }
 
+
+function renderMojDomSetting() {
+  const el = document.getElementById('settings-moj-dom');
+  if(!el) return;
+  const data = loadNekretnine();
+  const keys = Object.keys(data);
+  const current = getMojDom();
+  if(!keys.length) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--muted)">Nema dodanih nekretnina.</div>';
+    return;
+  }
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">
+    ${keys.map(k=>`<label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+      <input type="radio" name="moj_dom" value="${k}" ${current===k?'checked':''}
+        onchange="setMojDom('${k}')" style="accent-color:var(--green)">
+      <span>${data[k].label}</span>
+    </label>`).join('')}
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+      <input type="radio" name="moj_dom" value="" ${!current?'checked':''}
+        onchange="setMojDom(null)" style="accent-color:var(--muted)">
+      <span style="color:var(--muted)">— Ne koristim nekretninu za praćenje</span>
+    </label>
+  </div>`;
+}
+
 function renderKalkSettings() {
   const el = document.getElementById('settings-kalk');
   if(!el) return;
@@ -1112,6 +1144,7 @@ function renderSettings() {
   const portCfg = loadPortConfig();
 
   renderKalkSettings();
+  renderMojDomSetting();
   // Render year lock section
   const lockEl = document.getElementById('settings-year-lock');
   if(lockEl) {
@@ -1570,6 +1603,23 @@ function saveVal(section, cat, key, inp) {
   inp.className = 'tbl-val' + (val === 0 ? ' empty-val' : '');
 
   // no group totals
+
+  // Sync to moja nekretnina if actual rezije
+  if(section === 'actual' && cat === 'rezije') {
+    const mojDom = getMojDom();
+    if(mojDom) {
+      const data = loadNekretnine();
+      if(data[mojDom]) {
+        if(!data[mojDom].values) data[mojDom].values = {};
+        if(!data[mojDom].values['rezije']) data[mojDom].values['rezije'] = {};
+        if(!data[mojDom].values['rezije'][key]) data[mojDom].values['rezije'][key] = {};
+        const ym = selYear+'-'+String(selMonth).padStart(2,'0');
+        if(val > 0) data[mojDom].values['rezije'][key][ym] = String(val);
+        else delete data[mojDom].values['rezije'][key][ym];
+        saveNekretnine(data);
+      }
+    }
+  }
 
   // update subtotal
   const total = catSum(section, cat);
@@ -2318,32 +2368,47 @@ function renderGodisnji() {
   const pocetnoGp = getZrStanje(gpYear) || loadPocetnoStanje();
   const summaryMonths = Array.from({length:12},(_,i)=>i+1);
 
-  const prihodRow = summaryMonths.map(m=>{
-    const v=gpMonthSum('prihodi',m);
-    return `<td style="text-align:right;font-weight:600;color:var(--green);padding:6px 3px">${v>0?fmtFull(v):'—'}</td>`;
-  }).join('');
-  const rashodRow = summaryMonths.map(m=>{
-    const v=RASHODI_CATS.reduce((s,c)=>s+gpMonthSum(c,m),0);
-    return `<td style="text-align:right;font-weight:600;color:var(--red);padding:6px 3px">${v>0?fmtFull(v):'—'}</td>`;
-  }).join('');
+  // ── Per-month calculations ──
+  const monthData = summaryMonths.map(m => {
+    const prihod    = gpMonthSum('prihodi', m);
+    const rashod    = RASHODI_CATS.reduce((s,cat)=>s+gpMonthSum(cat,m), 0);
+    const zajTros   = gpMonthZaj(m);
+    const uplata    = gpMonthUplata(m);
+    return {prihod, rashod, zajTros, uplata};
+  });
 
   // ZR stanje kumulativno
   let cumZr = pocetnoGp;
-  const zrStanjeRow = summaryMonths.map(m=>{
-    cumZr += gpMonthUplata(m) - gpMonthZaj(m);
-    const col = cumZr>=0?'var(--green)':'var(--red)';
-    return `<td style="text-align:right;font-weight:700;color:${col};padding:6px 3px">${fmtFull(Math.round(cumZr*100)/100)}</td>`;
-  }).join('');
-
-  // ZR line chart data
-  let cumZr2 = pocetnoGp;
-  const zrChartData = summaryMonths.map(m=>{
-    cumZr2 += gpMonthUplata(m) - gpMonthZaj(m);
-    return Math.round(cumZr2*100)/100;
+  const zrStanjePerMonth = summaryMonths.map((m,i) => {
+    cumZr += monthData[i].uplata - monthData[i].zajTros;
+    return Math.round(cumZr*100)/100;
   });
+  const zrChartData = zrStanjePerMonth.slice();
 
-  const prihodTotal = summaryMonths.reduce((s,m)=>s+gpMonthSum('prihodi',m),0);
-  const rashodTotal = summaryMonths.reduce((s,m)=>s+RASHODI_CATS.reduce((ss,c)=>ss+gpMonthSum(c,m),0),0);
+  // Bilanca = prihod - rashod (osobna)
+  const bilancaPerMonth = summaryMonths.map((m,i) =>
+    monthData[i].prihod - monthData[i].rashod - monthData[i].uplata
+  );
+
+  // Yearly totals
+  const prihodTotal  = monthData.reduce((s,d)=>s+d.prihod, 0);
+  const rashodTotal  = monthData.reduce((s,d)=>s+d.rashod, 0);
+  const zajTrosTotal = monthData.reduce((s,d)=>s+d.zajTros, 0);
+  const zrFinal      = zrStanjePerMonth[11] || pocetnoGp;
+  const bilancaTotal = monthData.reduce((s,d)=>s+d.prihod-d.rashod-d.uplata, 0);
+
+  // Row generators
+  function mkRow(vals, colorFn, bold) {
+    return vals.map(v => {
+      const col = colorFn(v);
+      return '<td style="text-align:right;font-weight:'+(bold?700:600)+';color:'+col+';padding:5px 3px;font-size:12px">'+(v!==0?fmtFull(v):'—')+'</td>';
+    }).join('');
+  }
+  const prihodRow  = mkRow(monthData.map(d=>d.prihod),  ()=>'var(--green)', false);
+  const rashodRow  = mkRow(monthData.map(d=>d.rashod),  ()=>'var(--red)',   false);
+  const zajRow     = mkRow(monthData.map(d=>d.zajTros), ()=>'var(--red)',   false);
+  const zrStanjeRow= mkRow(zrStanjePerMonth, v=>v>=0?'var(--green)':'var(--red)', true);
+  const bilancaRow = mkRow(bilancaPerMonth,  v=>v>=0?'var(--green)':'var(--red)', true);
 
   const zrVal = getZrStanje(gpYear);
 
@@ -2378,18 +2443,40 @@ function renderGodisnji() {
     </div>
 
     <div class="card" style="margin-bottom:16px">
-      <div class="ct" style="margin-bottom:10px">Sažetak po mjesecima</div>
+      <div class="ct" style="margin-bottom:10px">Sažetak po mjesecima — ${gpYear}.</div>
       <div class="gp-wrap">
         <table class="gp-table">
           <thead><tr>
-            <th style="text-align:left;min-width:130px"></th>
-            ${MONTHS_SHORT.map(m=>`<th>${m}</th>`).join('')}
+            <th style="text-align:left;min-width:160px">Stavka</th>
+            ${MONTHS_SHORT.map(m=>'<th>'+m+'</th>').join('')}
             <th>Godišnje</th>
           </tr></thead>
           <tbody>
-            <tr><td style="padding:6px 10px;font-size:13px;color:var(--green);font-weight:600">💰 Prihodi</td>${prihodRow}<td style="text-align:right;font-weight:700;color:var(--green);padding:0 8px">${fmtFull(prihodTotal)}</td></tr>
-            <tr><td style="padding:6px 10px;font-size:13px;color:var(--red);font-weight:600">📤 Rashodi</td>${rashodRow}<td style="text-align:right;font-weight:700;color:var(--red);padding:0 8px">${fmtFull(rashodTotal)}</td></tr>
-            <tr style="border-top:2px solid var(--border)"><td style="padding:6px 10px;font-size:13px;font-weight:700">📊 ZR stanje</td>${zrStanjeRow}<td style="padding:0 8px"></td></tr>
+            <tr>
+              <td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--green)">💰 Planirani prihod</td>
+              ${prihodRow}
+              <td style="text-align:right;font-weight:700;color:var(--green);padding:0 8px;font-size:12px">${prihodTotal>0?fmtFull(prihodTotal):'—'}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--red)">📤 Planirani rashod</td>
+              ${rashodRow}
+              <td style="text-align:right;font-weight:700;color:var(--red);padding:0 8px;font-size:12px">${rashodTotal>0?fmtFull(rashodTotal):'—'}</td>
+            </tr>
+            <tr>
+              <td style="padding:6px 10px;font-size:12px;font-weight:700;color:var(--red)">🏠 Planirani zajednički troškovi</td>
+              ${zajRow}
+              <td style="text-align:right;font-weight:700;color:var(--red);padding:0 8px;font-size:12px">${zajTrosTotal>0?fmtFull(zajTrosTotal):'—'}</td>
+            </tr>
+            <tr style="border-top:1.5px solid var(--border)">
+              <td style="padding:6px 10px;font-size:12px;font-weight:700">📊 Planirano stanje ZR</td>
+              ${zrStanjeRow}
+              <td style="text-align:right;font-weight:700;padding:0 8px;font-size:12px;color:${zrFinal>=0?'var(--green)':'var(--red)'}">${fmtFull(zrFinal)}</td>
+            </tr>
+            <tr style="border-top:1.5px solid var(--border)">
+              <td style="padding:6px 10px;font-size:12px;font-weight:700">⚖️ Bilanca</td>
+              ${bilancaRow}
+              <td style="text-align:right;font-weight:700;padding:0 8px;font-size:12px;color:${bilancaTotal>=0?'var(--green)':'var(--red)'}">${fmtFull(bilancaTotal)}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -2560,6 +2647,7 @@ function addNekretnina(label) {
   };
   saveNekretnine(data);
   renderNekretList();
+  renderNekretSidebarNav();
   setTimeout(() => renderNekretPage(key), 100);
 }
 
@@ -2571,6 +2659,7 @@ function removeNekretnina(key) {
   saveNekretnine(data);
   currentNekret = null;
   renderNekretList();
+  renderNekretSidebarNav();
 }
 
 function renameNekretnina(key) {
@@ -2589,7 +2678,21 @@ function saveNajam(key, val) {
 }
 
 // ── RENDER LIST (overview) ────────────────────
+function renderNekretSidebarNav() {
+  const el = document.getElementById('kids-nekretnine-nav');
+  if(!el) return;
+  const data = loadNekretnine();
+  const keys = Object.keys(data);
+  if(!keys.length) { el.innerHTML = ''; return; }
+  el.innerHTML = keys.map(k =>
+    `<div class="nc" onclick="goPage('nekretnine',document.getElementById('nav-nekretnine'));currentNekret='${k}';renderNekretPage('${k}')">
+      <span class="nc-dot"></span>${data[k].label}
+    </div>`
+  ).join('');
+}
+
 function renderNekretList() {
+  renderNekretSidebarNav();
   const body = document.getElementById('nekret-body');
   if(!body) return;
   const data = loadNekretnine();
@@ -2659,7 +2762,7 @@ function renderNekretPage(key) {
 
   // Yearly totals per category for dashboard cards
   const yearlyNajam = n.najam * 12;
-  const yearlyTroskovi = cats.reduce((s,cat)=>s+cat.items.reduce((ss,item)=>
+  const yearlyTroskovi = cats.filter(cat=>cat.key!=='rezije').reduce((s,cat)=>s+cat.items.reduce((ss,item)=>
     ss+Array.from({length:12},(_,i)=>getNekretVal(key,cat.key,item.key,nekretYear,i+1)).reduce((a,b)=>a+b,0),0),0);
 
   // Build table rows
@@ -2709,14 +2812,12 @@ function renderNekretPage(key) {
     </tr>`;
   });
 
-  // Chart — last 12 months stacked bar
-  const chartMonths = Array.from({length:12},(_,i)=>{
-    const d = new Date(selYear, selMonth-1-i, 1);
-    return {y:d.getFullYear(), m:d.getMonth()+1, label:(d.getMonth()+1)+'/'+d.getFullYear()};
-  }).reverse();
-  const chartDatasets = cats.map(cat=>({
+  // Chart — selected year, all 12 months
+  const MONTHS_SHORT_NK = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
+  const TROSKOVI_CATS = cats.filter(cat => cat.key !== 'rezije');
+  const chartDatasets = TROSKOVI_CATS.map(cat=>({
     label: cat.label,
-    data: chartMonths.map(({y,m})=>cat.items.reduce((s,item)=>s+getNekretVal(key,cat.key,item.key,y,m),0)),
+    data: Array.from({length:12},(_,i)=>cat.items.reduce((s,item)=>s+getNekretVal(key,cat.key,item.key,nekretYear,i+1),0)),
     backgroundColor: (cat.items[0]?.color||'#888')+'99',
     borderColor: cat.items[0]?.color||'#888',
     borderWidth:1,
@@ -2744,7 +2845,7 @@ function renderNekretPage(key) {
         <div style="font-size:12px;color:var(--muted);margin-top:4px">${n.najam>0?fmtFull(n.najam)+'/mj':''}</div>
       </div>
       <div class="mc" style="border-left:3px solid var(--red)">
-        <div class="mc-l">Troškovi ${nekretYear}.</div>
+        <div class="mc-l">Troškovi ${nekretYear}. (bez režija)</div>
         <div class="mc-v neg">${yearlyTroskovi>0?fmtFull(yearlyTroskovi):'—'}</div>
       </div>
       <div class="mc" style="border-left:3px solid var(--accent2)">
@@ -2817,7 +2918,7 @@ function renderNekretPage(key) {
     if(window[chartId]) window[chartId].destroy();
     window[chartId] = new Chart(ctx, {
       type: 'bar',
-      data: { labels: chartMonths.map(({label})=>label), datasets: chartDatasets },
+      data: { labels: MONTHS_SHORT_NK, datasets: chartDatasets },
       options: {
         responsive:true, maintainAspectRatio:false,
         plugins:{legend:{position:'bottom',labels:{boxWidth:11,font:{size:11}}}},
@@ -2840,6 +2941,50 @@ function renderNekretnine() {
   refreshStructure();
   if(currentNekret) renderNekretPage(currentNekret);
   else renderNekretList();
+}
+
+
+// ── MOJA NEKRETNINA ──────────────────────────
+const MOJ_DOM_KEY = 'nekret_moj_dom';
+
+function getMojDom() {
+  return localStorage.getItem(MOJ_DOM_KEY) || null;
+}
+function setMojDom(key) {
+  if(key) localStorage.setItem(MOJ_DOM_KEY, key);
+  else localStorage.removeItem(MOJ_DOM_KEY);
+  scheduleAutoPush();
+}
+
+// Copy actual expense from main app into nekretnina
+// Called when user sets moj_dom — syncs režije subcats
+function syncRezijeToDom(nekretKey) {
+  if(!nekretKey) return;
+  const data = loadNekretnine();
+  if(!data[nekretKey]) return;
+  if(!data[nekretKey].values) data[nekretKey].values = {};
+  if(!data[nekretKey].values['rezije']) data[nekretKey].values['rezije'] = {};
+  
+  const REZIJE_MAP = {
+    'struja':    {cat:'rezije', sub:'struja'},
+    'voda':      {cat:'rezije', sub:'voda'},
+    'plin':      {cat:'rezije', sub:'plin'},
+    'komunalna': {cat:'rezije', sub:'komunalna'},
+    'pricuva':   {cat:'rezije', sub:'pricuva'},
+    'internet':  {cat:'rezije', sub:'internet'},
+    'hrt':       {cat:'rezije', sub:'hrt'},
+  };
+  
+  // Pull current period actual values from main app
+  const ym = selYear+'-'+String(selMonth).padStart(2,'0');
+  Object.entries(REZIJE_MAP).forEach(([nk, {cat,sub}]) => {
+    const mainVal = parseFloat(localStorage.getItem('fa_'+cat+'_'+sub+'_'+ym)||'0')||0;
+    if(mainVal > 0) {
+      if(!data[nekretKey].values['rezije'][nk]) data[nekretKey].values['rezije'][nk] = {};
+      data[nekretKey].values['rezije'][nk][ym] = String(mainVal);
+    }
+  });
+  saveNekretnine(data);
 }
 
 // ══════════════════════════════════════════════
@@ -2941,7 +3086,7 @@ function setSyncStatus(state, msg) {
 
 function collectLocalData() {
   const data = {};
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom'];
   for(let i=0;i<localStorage.length;i++) {
     const k = localStorage.key(i);
     if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
@@ -2950,7 +3095,7 @@ function collectLocalData() {
 }
 
 function applyCloudData(data) {
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom'];
   Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
     .forEach(k=>localStorage.removeItem(k));
   Object.entries(data).forEach(([k,v])=>{ if(k!=='_updated') localStorage.setItem(k,v); });
