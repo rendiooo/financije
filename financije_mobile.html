@@ -338,13 +338,15 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 /* godišnji plan tablica */
 .gp-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .gp-table{border-collapse:collapse;width:100%;min-width:900px;font-size:13px}
-.gp-table th{padding:8px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;position:sticky;top:0;background:var(--bg);z-index:2}
-.gp-table th:first-child{text-align:left;position:sticky;left:0;background:var(--bg);z-index:3}
-.gp-table td{padding:7px 10px;border-bottom:0.5px solid var(--border);vertical-align:middle}
-.gp-table td:first-child{font-size:13px;font-weight:500;white-space:nowrap;position:sticky;left:0;background:var(--surface);z-index:1}
+.gp-table th{padding:8px 4px;text-align:center;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;position:sticky;top:0;background:var(--bg);z-index:2}
+.gp-table th:first-child{text-align:left;padding-left:10px;position:sticky;left:0;background:var(--bg);z-index:3}
+.gp-table th:last-child{text-align:right;padding-right:8px}
+.gp-table td{padding:4px 4px;border-bottom:0.5px solid var(--border);vertical-align:middle;text-align:center}
+.gp-table td:first-child{font-size:13px;font-weight:500;white-space:nowrap;position:sticky;left:0;background:var(--surface);z-index:1;text-align:left;padding:7px 10px}
+.gp-table td:last-child{text-align:right;padding-right:8px}
 .gp-table tr:hover td{background:var(--bg)}
 .gp-table tr.gp-subtotal td{font-weight:700;background:var(--tb-head);border-top:1.5px solid var(--border)}
-.gp-inp{width:72px;padding:4px 6px;border:1px solid transparent;border-radius:6px;font-family:inherit;font-size:12px;text-align:right;background:transparent;color:var(--text);outline:none}
+.gp-inp{width:68px;padding:4px 4px;border:1px solid transparent;border-radius:6px;font-family:inherit;font-size:12px;text-align:right;background:transparent;color:var(--text);outline:none;display:block;margin:0 auto}
 .gp-inp:focus{border-color:var(--accent2);background:var(--surface)}
 .gp-inp.has-val{color:var(--green);font-weight:500}
 .gp-inp.locked{color:var(--muted);background:transparent;pointer-events:none}
@@ -363,7 +365,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.7.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.8.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -399,7 +401,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
-  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v3.7.0</span></div>
+  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v3.8.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
