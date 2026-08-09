@@ -331,7 +331,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.8.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.0.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -470,7 +470,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot">Podaci · v3.8.0</div>
+  <div class="sb-foot">Podaci · v4.0.0</div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -553,31 +553,8 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <!-- SETTINGS -->
   <div id="page-settings" class="page">
     <div class="ph"><h2>Postavke</h2><p>Konfiguracija bucketa i početnog stanja</p></div>
-    <div class="card" style="margin-bottom:18px">
-      <div class="ct" style="margin-bottom:14px">Početno stanje zajedničkog računa</div>
-      <div style="display:flex;align-items:center;gap:12px;max-width:340px">
-        <input type="number" id="pocetno-stanje" placeholder="0.00" min="0" step="0.01"
-          style="flex:1" oninput="savePocetnoStanje(this.value)">
-        <span style="font-size:14px;color:var(--muted);white-space:nowrap">€</span>
-      </div>
-      <p style="font-size:12px;color:var(--muted);margin-top:8px">Ovo se koristi za izračun planiranog i stvarnog stanja zajedničkog računa na dashboardu.</p>
-    </div>
-    <div class="card" style="margin-bottom:18px">
-      <div class="ct" style="margin-bottom:14px">Moja nekretnina — praćenje režija</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Odaberite u kojoj nekretnini živite. Stvarni troškovi režija iz glavne aplikacije automatski se kopiraju u tu nekretninu.</p>
-      <div id="settings-moj-dom"></div>
-      <button class="crud-add-btn" style="margin-top:12px" onclick="importRezijeToDom()">⬇️ Uvezi postojeće režije u odabranu nekretninu</button>
-    </div>
-    <div class="card" style="margin-bottom:18px">
-      <div class="ct" style="margin-bottom:14px">Kalkulator — troškovi po osobi</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Odaberite čija je plaća i koji se troškovi oduzimaju za svaku osobu.</p>
-      <div id="settings-kalk"></div>
-    </div>
-    <div class="card" style="margin-bottom:18px">
-      <div class="ct" style="margin-bottom:14px">Zaključavanje plana po godini</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Zaključajte plan za određenu godinu da spriječite slučajne izmjene.</p>
-      <div id="settings-year-lock"></div>
-    </div>
+
+
     <div class="card" style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:14px">PIN zaštita</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Postavite 4-znamenkasti PIN koji se traži pri svakom otvaranju aplikacije. Ostavite prazno za isključivanje PIN-a.</p>
