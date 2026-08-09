@@ -329,7 +329,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.6.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v3.7.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -468,7 +468,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot">Podaci · v3.6.0</div>
+  <div class="sb-foot">Podaci · v3.7.0</div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -2470,7 +2470,7 @@ function renderGodisnji() {
     <div class="card" style="margin-bottom:16px">
       <div class="ct" style="margin-bottom:10px">Sažetak po mjesecima — ${gpYear}.</div>
       <div class="gp-wrap">
-        <table class="gp-table">
+        <table class="gp-table" id="gp-summary-table">
           <thead><tr>
             <th style="text-align:left;min-width:160px">Stavka</th>
             ${MONTHS_SHORT.map(m=>'<th>'+m+'</th>').join('')}
