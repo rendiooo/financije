@@ -334,7 +334,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.9.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.0.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -454,7 +454,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v5.9.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v6.0.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -482,7 +482,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
       <div class="card">
         <div class="ct">Godišnji plan rashoda <span style="font-size:11px;font-weight:400;color:var(--muted)" id="chart-plan-year"></span></div>
-        <div style="height:260px;position:relative"><canvas id="chartPlanDonut"></canvas></div>
+        <div style="display:flex;align-items:center;gap:0;min-height:260px"><div id="chartPlanLegend" style="flex:0 0 auto;padding-right:20px;display:flex;flex-direction:column;justify-content:center;gap:10px;min-width:200px"></div><div style="flex:1;height:260px;position:relative"><canvas id="chartPlanDonut"></canvas></div></div>
       </div>
     </div>
     <div class="card">
@@ -2229,26 +2229,7 @@ function renderDash(){
           cutout: '65%',
           layout: { padding: { left: 0 } },
           plugins: {
-            legend: {
-              position: 'left',
-              labels: {
-                color: 'rgba(255,255,255,.85)',
-                boxWidth: 12, boxHeight: 12,
-                borderRadius: 4,
-                padding: 14,
-                font: { size: 13, weight: '500' },
-                generateLabels: function(chart) {
-                  const data = chart.data;
-                  return data.labels.map((label, i) => ({
-                    text: label + '   ' + fmtFull(planYearTotals[i].val),
-                    fillStyle: data.datasets[0].backgroundColor[i],
-                    strokeStyle: 'transparent',
-                    lineWidth: 0,
-                    index: i
-                  }));
-                }
-              }
-            },
+            legend: { display: false },
             tooltip: {
               backgroundColor: 'rgba(20,20,20,.95)',
               titleColor: '#fff',
@@ -2262,6 +2243,17 @@ function renderDash(){
           }
         }
       });
+      // Custom HTML legend — guaranteed white text
+      const legendEl = document.getElementById('chartPlanLegend');
+      if(legendEl) {
+        legendEl.innerHTML = planYearTotals.map(function(x) {
+          return '<div style="display:flex;align-items:center;gap:10px">'
+            + '<span style="width:12px;height:12px;border-radius:3px;background:'+x.color+';flex-shrink:0;display:inline-block"></span>'
+            + '<span style="font-size:13px;font-weight:500;color:rgba(255,255,255,.85)">'+x.icon+' '+x.label+'</span>'
+            + '<span style="font-size:12px;color:rgba(255,255,255,.45);margin-left:auto;padding-left:12px;white-space:nowrap">'+fmtFull(x.val)+'</span>'
+            + '</div>';
+        }).join('');
+      }
     }
   }
 
