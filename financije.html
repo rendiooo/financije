@@ -334,7 +334,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.4.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.5.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -393,11 +393,15 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 
 
     <div style="margin-top:4px">
-      <div class="ni" id="nav-actual" onclick="goPage('actual',this)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0">
-          <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
-        </svg>Stvarni troškovi
+      <div class="np-h" id="np-actual" onclick="toggleSection('actual')">
+        <span class="l">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>Stvarni troškovi
+        </span>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
+      <div class="np-k" id="kids-actual"></div>
     </div>
 
     <div style="margin-top:4px">
@@ -450,7 +454,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v5.4.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v5.5.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -1498,7 +1502,7 @@ function toggleSection(id){
   document.querySelectorAll('.ni.nekret-open').forEach(el=>el.classList.remove('nekret-open'));
   const nekretKids=document.getElementById('kids-nekretnine-nav');
   if(nekretKids) nekretKids.style.display='none';
-  if(!was){h.classList.add('open');k.classList.add('open');}
+  if(!was){h.classList.add('open');k.classList.add('open');if(id==='actual')buildActualNav();}
 }
 
 function goInv(key, el){
@@ -2379,51 +2383,79 @@ function renderDashTable() {
 
 
 // ── STVARNI TROŠKOVI OVERVIEW ──
+
+function buildActualNav() {
+  const el = document.getElementById('kids-actual');
+  if(!el) return;
+  refreshStructure();
+  // Build nav items with event delegation
+  el.innerHTML = CATS.map((cat,i) => {
+    const m = META[cat];
+    return '<div class="nc" data-catkey="'+cat+'"><span class="nc-dot"></span>'+m.label+'</div>';
+  }).join('');
+  el.querySelectorAll('[data-catkey]').forEach(function(d){
+    d.addEventListener('click', function(){ gocat('actual', d.getAttribute('data-catkey'), d); });
+  });
+}
+
 function renderActualOverview() {
   refreshStructure();
-  const MONTHS_HR_L = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
-                       'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
-  const periodLabel = MONTHS_HR_L[selMonth-1] + ' ' + selYear;
+  const MHR = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
+               'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
   const el = document.getElementById('actual-period-label');
-  if(el) el.textContent = periodLabel;
+  if(el) el.textContent = MHR[selMonth-1] + ' ' + selYear;
   const grid = document.getElementById('actual-cats-grid');
   if(!grid) return;
 
-  grid.innerHTML = CATS.map(cat => {
+  // Store cats for click handler
+  window._actualCats = CATS.slice();
+
+  let html = '';
+  CATS.forEach(function(cat, idx) {
     const m = META[cat];
-    if(!m) return '';
-    const total = catSum('actual', cat);
+    if(!m) return;
+    const total   = catSum('actual', cat);
     const planned = catSum('planned', cat);
-    const diff = m.income ? total - planned : planned - total;
+    const diff    = m.income ? total - planned : planned - total;
     const diffCol = diff >= 0 ? 'var(--green)' : 'var(--red)';
-    const diffSign = diff >= 0 ? '+' : '−';
+    const diffSign= diff >= 0 ? '+' : '−';
 
-    const subcatRows = (SUBCATS[cat]||[]).map(sub => {
+    let subcatHtml = '';
+    (SUBCATS[cat]||[]).forEach(function(sub) {
       const v = getDB('actual', cat, sub.key);
-      if(!v) return '';
-      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--border)">'
+      if(!v) return;
+      subcatHtml += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--border)">'
         + '<span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px">'
-        + '<span style="width:5px;height:5px;border-radius:50%;background:'+sub.color+';display:inline-block;flex-shrink:0"></span>'
+        + '<span style="width:5px;height:5px;border-radius:50%;background:'+sub.color+';display:inline-block"></span>'
         + sub.label + '</span>'
-        + '<span style="font-size:12px;font-weight:600">' + fmtFull(v) + '</span></div>';
-    }).filter(Boolean).join('');
+        + '<span style="font-size:12px;font-weight:600">'+fmtFull(v)+'</span></div>';
+    });
 
-    const catHtml = '<div class="card" style="cursor:pointer;border-left:3px solid '+m.color+'" onclick="gocat(\"actual\",\"'+cat+'\",document.getElementById(\"nav-actual\"))">';
-    return catHtml
+    html += '<div class="card" data-catidx="'+idx+'" style="cursor:pointer;border-left:3px solid '+m.color+'">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'
-      + '<div>'
-      + '<div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">' + m.icon + ' ' + m.label + '</div>'
-      + '<div style="font-size:22px;font-weight:700;margin-top:4px;color:' + (m.income?'var(--green)':'var(--text)') + '">' + (total>0?fmtFull(total):'—') + '</div>'
+      + '<div><div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">'+m.icon+' '+m.label+'</div>'
+      + '<div style="font-size:22px;font-weight:700;margin-top:4px;color:'+(m.income?'var(--green)':'var(--text)')+'">'+( total>0?fmtFull(total):'—')+'</div></div>'
+      + (planned>0 ? '<div style="text-align:right"><div style="font-size:10px;color:var(--muted)">Plan</div>'
+        + '<div style="font-size:13px;color:var(--muted)">'+fmtFull(planned)+'</div>'
+        + '<div style="font-size:11px;font-weight:600;color:'+diffCol+'">'+diffSign+fmtFull(Math.abs(diff))+'</div></div>' : '')
       + '</div>'
-      + (planned>0
-        ? '<div style="text-align:right"><div style="font-size:10px;color:var(--muted)">Plan</div>'
-          + '<div style="font-size:13px;color:var(--muted)">' + fmtFull(planned) + '</div>'
-          + '<div style="font-size:11px;font-weight:600;color:'+diffCol+'">' + diffSign + fmtFull(Math.abs(diff)) + '</div></div>'
-        : '')
-      + '</div>'
-      + (subcatRows || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Nema unosa</div>')
+      + (subcatHtml || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Nema unosa za ovaj period</div>')
       + '</div>';
-  }).filter(Boolean).join('');
+  });
+
+  grid.innerHTML = html;
+
+  // Attach click handlers after render
+  grid.querySelectorAll('[data-catidx]').forEach(function(card) {
+    card.addEventListener('click', function() {
+      const cat = window._actualCats[+card.getAttribute('data-catidx')];
+      const npH = document.getElementById('np-actual');
+      if(npH) npH.classList.add('open');
+      const kids = document.getElementById('kids-actual');
+      if(kids) kids.classList.add('open');
+      gocat('actual', cat, card);
+    });
+  });
 }
 
 // ══════════════════════════════════════════════
