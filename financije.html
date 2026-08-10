@@ -331,7 +331,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.3.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.4.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -470,7 +470,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot">Podaci · v4.3.0</div>
+  <div class="sb-foot">Podaci · v4.4.0</div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -1267,8 +1267,16 @@ function promptAddPortfolio() {
   const key = addPortfolio(label.trim(), unitLabel.trim());
   if(key) {
     renderSettings();
-    // Add to sidebar nav dynamically
-    addPortfolioNavItem(key, INV_PORTFOLIOS_DEF[key]);
+    renderPortfolioNav();
+    // Navigate to new portfolio
+    setTimeout(() => {
+      const navEl = document.querySelector('[onclick*="goInv(\''+key+'\')"]');
+      if(navEl) goInv(key, navEl);
+      else {
+        currentPortfolio = key;
+        goPage('investments', document.getElementById('nav-investments'));
+      }
+    }, 100);
   }
 }
 
@@ -1764,7 +1772,9 @@ function showInvPortfolio(key, el) {
 
 function renderInvPortfolio() {
   const key  = currentPortfolio;
-  const p    = INV_PORTFOLIOS[key];
+  // Always read fresh from DEF (handles dynamically added portfolios)
+  refreshPortfolioStructure();
+  const p = INV_PORTFOLIOS_DEF[key] || INV_PORTFOLIOS[key];
   const data = invLoad(key);
   const curPrice = priceLoad(key);
   const today_val = `${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
