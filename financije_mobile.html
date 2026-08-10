@@ -353,7 +353,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 .gp-inp:focus{border-color:var(--accent2);background:var(--surface)}
 .gp-inp.has-val{color:var(--green);font-weight:500}
 .gp-inp.locked{color:var(--muted);background:transparent;pointer-events:none}
-.gp-year-sel{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.gp-year-sel{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#111;position:sticky;top:0;z-index:20;border-bottom:1px solid #222;margin-bottom:18px;margin-left:-24px;margin-right:-24px;padding-left:24px}
 
 /* period picker */
 .period-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px}
@@ -368,7 +368,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.0.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.3.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -413,7 +413,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
     </select>
   </div>
 </div>
-<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v5.0.0</span></div>
+<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v5.3.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -435,45 +435,13 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </svg>Dashboard
     </div>
 
-    <div style="margin-top:6px">
-      <div class="np-h" id="np-planned" onclick="toggleSection('planned')">
-        <span class="l">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
-          </svg>Planirani troškovi
-        </span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="np-k" id="kids-planned">
-        <div class="nc" onclick="gocat('planned','prihodi',this)"><span class="nc-dot"></span>Prihodi</div>
-        <div class="nc" onclick="gocat('planned','rezije',this)"><span class="nc-dot"></span>Režije i krediti</div>
-        <div class="nc" onclick="gocat('planned','kucanstvo',this)"><span class="nc-dot"></span>Kućanstvo</div>
-        <div class="nc" onclick="gocat('planned','automobili',this)"><span class="nc-dot"></span>Automobili</div>
-        <div class="nc" onclick="gocat('planned','pretplate',this)"><span class="nc-dot"></span>Pretplate</div>
-        <div class="nc" onclick="gocat('planned','izlasci',this)"><span class="nc-dot"></span>Zabava</div>
-        <div class="nc" onclick="gocat('planned','stednja',this)"><span class="nc-dot"></span>Štednja</div>
-        <div class="nc" onclick="gocat('planned','zajednicki',this)"><span class="nc-dot"></span>Uplata na zajednički račun</div>
-      </div>
-    </div>
+
 
     <div style="margin-top:4px">
-      <div class="np-h" id="np-actual" onclick="toggleSection('actual')">
-        <span class="l">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
-          </svg>Stvarni troškovi
-        </span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="np-k" id="kids-actual">
-        <div class="nc" onclick="gocat('actual','prihodi',this)"><span class="nc-dot"></span>Prihodi</div>
-        <div class="nc" onclick="gocat('actual','rezije',this)"><span class="nc-dot"></span>Režije i krediti</div>
-        <div class="nc" onclick="gocat('actual','kucanstvo',this)"><span class="nc-dot"></span>Kućanstvo</div>
-        <div class="nc" onclick="gocat('actual','automobili',this)"><span class="nc-dot"></span>Automobili</div>
-        <div class="nc" onclick="gocat('actual','pretplate',this)"><span class="nc-dot"></span>Pretplate</div>
-        <div class="nc" onclick="gocat('actual','izlasci',this)"><span class="nc-dot"></span>Zabava</div>
-        <div class="nc" onclick="gocat('actual','stednja',this)"><span class="nc-dot"></span>Štednja</div>
-        <div class="nc" onclick="gocat('actual','zajednicki',this)"><span class="nc-dot"></span>Uplata na zajednički račun</div>
+      <div class="ni" id="nav-actual" onclick="goPage('actual',this)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0">
+          <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>Stvarni troškovi
       </div>
     </div>
 
@@ -560,6 +528,12 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <div class="ct">Pregled kategorija</div>
       <div class="st-wrap"><table class="st" id="dash-table"></table></div>
     </div>
+  </div>
+
+  <!-- ACTUAL OVERVIEW PAGE -->
+  <div id="page-actual" class="page">
+    <div class="ph"><h2>Stvarni troškovi</h2><p id="actual-period-label">—</p></div>
+    <div id="actual-cats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px"></div>
   </div>
 
   <!-- CATEGORY PAGE -->
@@ -1517,6 +1491,7 @@ function goPage(id, el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
   if(id==='dashboard')   { renderDash(); pullAndRender(); return; }
+  if(id==='actual')    { renderActualOverview(); return; }
   if(id==='nekretnine') { renderNekretnine(); return; }
   if(id==='godisnji')    { renderGodisnji(); return; }
   if(id==='kalkulator')  { renderKalkulator(); return; }
@@ -1540,11 +1515,12 @@ function toggleSection(id){
   const h=document.getElementById('np-'+id), k=document.getElementById('kids-'+id);
   if(!h||!k) return;
   const was=k.classList.contains('open');
-  ['planned','actual','investments'].forEach(x=>{
-    const hh=document.getElementById('np-'+x), kk=document.getElementById('kids-'+x);
-    if(hh) hh.classList.remove('open');
-    if(kk) kk.classList.remove('open');
-  });
+  // Close ALL dropdowns
+  document.querySelectorAll('.np-h').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('.np-k').forEach(el=>el.classList.remove('open'));
+  document.querySelectorAll('.ni.nekret-open').forEach(el=>el.classList.remove('nekret-open'));
+  const nekretKids=document.getElementById('kids-nekretnine-nav');
+  if(nekretKids) nekretKids.style.display='none';
   if(!was){h.classList.add('open');k.classList.add('open');}
 }
 
@@ -1594,6 +1570,7 @@ function refreshCurrentPage() {
   const id = active.id.replace('page-','');
   if(id === 'dashboard')    renderDash();
   else if(id === 'investments') renderInvPortfolio();
+  else if(id === 'actual')    renderActualOverview();
   else if(id === 'nekretnine') renderNekretnine();
   else if(id === 'kalkulator') renderKalk();
   else {
@@ -2277,26 +2254,32 @@ function renderDash(){
             legend: {
               position: 'right',
               labels: {
-                color: 'rgba(255,255,255,.5)',
+                color: 'rgba(255,255,255,.7)',
                 boxWidth: 10, boxHeight: 10,
                 borderRadius: 3,
-                padding: 8,
+                padding: 10,
                 font: { size: 11 },
                 generateLabels: function(chart) {
                   const data = chart.data;
                   return data.labels.map((label, i) => ({
                     text: label + '  ' + fmtFull(planYearTotals[i].val),
                     fillStyle: data.datasets[0].backgroundColor[i],
-                    strokeStyle: data.datasets[0].borderColor,
-                    lineWidth: 1,
+                    strokeStyle: 'transparent',
+                    lineWidth: 0,
+                    fontColor: 'rgba(255,255,255,.7)',
                     index: i
                   }));
                 }
               }
             },
             tooltip: {
+              backgroundColor: 'rgba(20,20,20,.95)',
+              titleColor: '#fff',
+              bodyColor: 'rgba(255,255,255,.8)',
+              borderColor: '#333',
+              borderWidth: 1,
               callbacks: {
-                label: ctx => ' ' + fmtFull(ctx.parsed) + ' (' + (planTotal>0?(ctx.parsed/planTotal*100).toFixed(1):'0') + '%)'
+                label: ctx => '  ' + fmtFull(ctx.parsed) + ' (' + (planTotal>0?(ctx.parsed/planTotal*100).toFixed(1):'0') + '%)'
               }
             }
           }
@@ -2473,6 +2456,52 @@ function refreshCurrentPage(){
 
 
 
+
+
+// ── STVARNI TROŠKOVI OVERVIEW ──
+function renderActualOverview() {
+  const periodLabel = MONTHS_HR[selMonth-1] + ' ' + selYear;
+  const el = document.getElementById('actual-period-label');
+  if(el) el.textContent = periodLabel;
+  const grid = document.getElementById('actual-cats-grid');
+  if(!grid) return;
+
+  grid.innerHTML = ALL_CATS.map(cat => {
+    const m = META[cat];
+    const total = catSum('actual', cat);
+    const planned = catSum('planned', cat);
+    const diff = m.income ? total - planned : planned - total;
+    const diffCol = diff >= 0 ? 'var(--green)' : 'var(--red)';
+    const diffSign = diff >= 0 ? '+' : '−';
+
+    const subcatRows = (SUBCATS[cat]||[]).map(sub => {
+      const v = getDB('actual', cat, sub.key);
+      if(!v) return '';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid var(--border)">
+        <span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px">
+          <span style="width:5px;height:5px;border-radius:50%;background:${sub.color};display:inline-block;flex-shrink:0"></span>
+          ${sub.label}
+        </span>
+        <span style="font-size:12px;font-weight:500">${fmtFull(v)}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="card" style="cursor:pointer;border-left:3px solid ${m.color}" onclick="gocat('actual','${cat}',document.getElementById('nav-actual'))">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">${m.icon} ${m.label}</div>
+          <div style="font-size:20px;font-weight:700;margin-top:4px;color:${m.income?'var(--green)':'var(--text)'}">${total>0?fmtFull(total):'—'}</div>
+        </div>
+        ${planned>0?`<div style="text-align:right">
+          <div style="font-size:10px;color:var(--muted)">Plan</div>
+          <div style="font-size:13px;color:var(--muted)">${fmtFull(planned)}</div>
+          <div style="font-size:11px;font-weight:600;color:${diffCol}">${diffSign}${fmtFull(Math.abs(diff))}</div>
+        </div>`:''}
+      </div>
+      ${subcatRows || `<div style="font-size:12px;color:var(--muted);text-align:center;padding:8px 0">Nema unosa</div>`}
+    </div>`;
+  }).join('');
+}
 
 // ══════════════════════════════════════════════
 // GODIŠNJI PLAN
@@ -3003,6 +3032,9 @@ function toggleNekretNav(el) {
   const kids = document.getElementById('kids-nekretnine-nav');
   if(!kids) return;
   const isOpen = el.classList.contains('nekret-open');
+  // Close all other dropdowns first
+  document.querySelectorAll('.np-h').forEach(e=>e.classList.remove('open'));
+  document.querySelectorAll('.np-k').forEach(e=>e.classList.remove('open'));
   if(isOpen) {
     kids.style.display = 'none';
     el.classList.remove('nekret-open');
