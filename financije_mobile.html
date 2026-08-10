@@ -368,7 +368,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.7.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.9.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -413,7 +413,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
     </select>
   </div>
 </div>
-<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v5.7.0</span></div>
+<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v5.9.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -2016,6 +2016,8 @@ function renderInvList() { renderInvPortfolio(); }
 // DASHBOARD
 // ══════════════════════════════════════════════
 const charts={};
+Chart.defaults.color='rgba(255,255,255,.8)';
+Chart.defaults.plugins.legend.labels.color='rgba(255,255,255,.8)';
 function renderDash(){
   buildHeaderPeriodPicker();
   const MONTHS_HR = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
@@ -2229,24 +2231,14 @@ function renderDash(){
     if(!planYearTotals.length) {
       donutCtx.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Nema planiranih troškova za ' + planYear + '</div>';
     } else {
-      // Use shades of blue (#7DC8FF) for segments
-      const blueShades = [
-        'rgba(125,200,255,.9)',
-        'rgba(125,200,255,.7)',
-        'rgba(125,200,255,.52)',
-        'rgba(125,200,255,.38)',
-        'rgba(125,200,255,.26)',
-        'rgba(125,200,255,.16)',
-        'rgba(125,200,255,.1)',
-      ];
       charts.plan = new Chart(donutCtx, {
         type: 'doughnut',
         data: {
           labels: planYearTotals.map(x => x.icon + ' ' + x.label),
           datasets: [{
             data: planYearTotals.map(x => x.val),
-            backgroundColor: planYearTotals.map((_,i) => blueShades[i % blueShades.length]),
-            borderColor: '#161616',
+            backgroundColor: planYearTotals.map(x => x.color),
+            borderColor: '#111',
             borderWidth: 2,
           }]
         },
