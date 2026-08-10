@@ -14,7 +14,7 @@
 <style>
 :root{
   --bg:#111;--surface:#161616;--border:#222;--text:#F0F0F0;--muted:rgba(255,255,255,.35);
-  --accent:#000;--accent2:rgba(125,200,255,.1);--green:#39FF8F;--red:#E86060;--amber:#F0B040;
+  --accent:#000;--accent2:rgba(125,200,255,.1);--green:#39FF8F;--red:#FF3B3B;--amber:#F0B040;
   --sw:220px;--radius:10px;--rsm:7px;
   --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.3);
 
@@ -23,7 +23,7 @@
   --tb-muted:rgba(255,255,255,.3);--tb-text:#F0F0F0;
   --tb-head:#111;--tb-cat:#39FF8F;--tb-cat-bg:rgba(57,255,143,.08);
   --tb-hover:#1A1A1A;--tb-input:#1A1A1A;
-  --tb-green:#39FF8F;--tb-red:#E86060;
+  --tb-green:#39FF8F;--tb-red:#FF3B3B;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;color-scheme:dark}
@@ -37,6 +37,9 @@ html,body{height:100%;overflow:hidden}
 .sb{background:var(--accent);color:#fff;position:fixed;top:0;left:0;right:0;z-index:200;
     height:56px;display:flex;align-items:center;padding:0 16px;
     padding-top:env(safe-area-inset-top);z-index:50}
+.sb-period{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;background:#000;z-index:10}
+.sb-period-label{font-size:9px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.sb-period select option{background:#111;color:#fff}
 .sb-logo{display:flex;align-items:center;gap:10px;flex:1}
 .sb-logo h1{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;color:#fff}
 .sb-logo p{display:none}
@@ -365,7 +368,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.7.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.0.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -401,7 +404,16 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
-  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v4.7.0</span></div>
+  <div class="sb-period">
+  <div class="sb-period-label">Period</div>
+  <div style="display:flex;gap:6px">
+    <select id="global-year" onchange="globalSetYear(+this.value)" style="flex:1;padding:5px 8px;font-size:12px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.06);color:#fff;cursor:pointer">
+    </select>
+    <select id="global-month" onchange="globalSetMonth(this.value)" style="flex:1;padding:5px 8px;font-size:12px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.06);color:#fff;cursor:pointer">
+    </select>
+  </div>
+</div>
+<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v5.0.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -541,7 +553,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
       <div class="card">
         <div class="ct">Godišnji plan rashoda <span style="font-size:11px;font-weight:400;color:var(--muted)" id="chart-plan-year"></span></div>
-        <div id="chart-plan-body"></div>
+        <div style="height:260px;position:relative"><canvas id="chartPlanDonut"></canvas></div>
       </div>
     </div>
     <div class="card">
@@ -1395,7 +1407,8 @@ function handleMonthChange(val, onChangeFn) {
     testMode = false;
     selMonth = +val;
   }
-  eval(onChangeFn);
+  buildGlobalPeriodPicker();
+  if(onChangeFn) eval(onChangeFn);
 }
 
 function buildPeriodPicker(barId, onChangeFn) {
@@ -1545,6 +1558,57 @@ function goInv(key, el){
   if(tabEl) tabEl.classList.add('active');
   renderInvPortfolio();
   closeDrawer();
+}
+
+
+// ── GLOBAL PERIOD CONTROL ──
+function buildGlobalPeriodPicker() {
+  const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
+  const yEl = document.getElementById('global-year');
+  const mEl = document.getElementById('global-month');
+  if(!yEl || !mEl) return;
+
+  const years = [2024,2025,2026,2027,2028,2029,2030];
+  yEl.innerHTML = years.map(y=>`<option value="${y}"${y===selYear?' selected':''}>${y}</option>`).join('');
+  mEl.innerHTML = MONTHS_SHORT.map((m,i)=>
+    `<option value="${i+1}"${i+1===selMonth?' selected':''}>${m}</option>`
+  ).join('');
+}
+
+function globalSetYear(y) {
+  selYear = y;
+  buildGlobalPeriodPicker();
+  refreshCurrentPage();
+}
+
+function globalSetMonth(m) {
+  selMonth = +m;
+  buildGlobalPeriodPicker();
+  refreshCurrentPage();
+}
+
+function refreshCurrentPage() {
+  // Re-render whichever page is currently active
+  const active = document.querySelector('.page.active');
+  if(!active) return;
+  const id = active.id.replace('page-','');
+  if(id === 'dashboard')    renderDash();
+  else if(id === 'investments') renderInvPortfolio();
+  else if(id === 'nekretnine') renderNekretnine();
+  else if(id === 'kalkulator') renderKalk();
+  else {
+    // cat pages
+    if(typeof _sec !== 'undefined' && typeof _cat !== 'undefined' && _sec && _cat) {
+      renderCatPage(_sec, _cat);
+    }
+  }
+  // Update all period bar pickers on current page to reflect new selection
+  document.querySelectorAll('[id$="-year"]').forEach(el => {
+    if(el.id !== 'global-year') el.value = selYear;
+  });
+  document.querySelectorAll('[id$="-month"]').forEach(el => {
+    if(el.id !== 'global-month') el.value = selMonth;
+  });
 }
 
 // ══════════════════════════════════════════════
@@ -2116,12 +2180,12 @@ function renderDash(){
         // Bottom segment: min(plan,stvarno) — red when stvarno<plan, green when stvarno>=plan
         {label:'_base',
          data: pvaPlanned.map((p,i)=>pvaActual[i]>=p ? p : pvaActual[i]),
-         backgroundColor: pvaPlanned.map((p,i)=>pvaActual[i]>=p ? 'rgba(57,255,143,.65)' : 'rgba(232,96,96,.65)'),
+         backgroundColor: pvaPlanned.map((p,i)=>pvaActual[i]>=p ? 'rgba(57,255,143,.65)' : 'rgba(255,59,59,.65)'),
          borderWidth:0, stack:'s'},
         // Top segment: difference — green when plan>stvarno, red when stvarno>plan
         {label:'_top',
          data: pvaPlanned.map((p,i)=>Math.abs(p-pvaActual[i])),
-         backgroundColor: pvaPlanned.map((p,i)=>p>=pvaActual[i] ? 'rgba(57,255,143,.65)' : 'rgba(232,96,96,.65)'),
+         backgroundColor: pvaPlanned.map((p,i)=>p>=pvaActual[i] ? 'rgba(57,255,143,.65)' : 'rgba(255,59,59,.65)'),
          borderWidth:0, stack:'s'},
       ]
     },
@@ -2177,29 +2241,67 @@ function renderDash(){
   const planTotal = planYearTotals.reduce((s,x)=>s+x.val,0);
   if(charts.plan) { charts.plan.destroy(); charts.plan = null; }
 
-  const planBody = document.getElementById('chart-plan-body');
-  if(planBody) {
+  // Doughnut chart for plan breakdown
+  const donutCtx = document.getElementById('chartPlanDonut');
+  if(donutCtx) {
+    if(charts.plan) { charts.plan.destroy(); charts.plan = null; }
     if(!planYearTotals.length) {
-      planBody.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px">Nema planiranih troškova za ' + planYear + '</div>';
+      donutCtx.parentElement.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);font-size:13px">Nema planiranih troškova za ' + planYear + '</div>';
     } else {
-      planBody.innerHTML = planYearTotals.map(x => {
-        const pct = planTotal > 0 ? (x.val/planTotal)*100 : 0;
-        return `<div style="margin-bottom:10px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-            <span style="font-size:13px;display:flex;align-items:center;gap:5px">
-              <span style="width:9px;height:9px;border-radius:50%;background:${x.color};display:inline-block;flex-shrink:0"></span>
-              ${x.icon} ${x.label}
-            </span>
-            <span style="font-size:12px;font-weight:600;color:var(--text)">${fmtFull(x.val)}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-              <div style="height:100%;width:${pct.toFixed(1)}%;background:${x.color};border-radius:3px;transition:width .4s"></div>
-            </div>
-            <span style="font-size:11px;color:var(--muted);min-width:36px;text-align:right">${pct.toFixed(1)}%</span>
-          </div>
-        </div>`;
-      }).join('');
+      // Use shades of blue (#7DC8FF) for segments
+      const blueShades = [
+        'rgba(125,200,255,.9)',
+        'rgba(125,200,255,.7)',
+        'rgba(125,200,255,.52)',
+        'rgba(125,200,255,.38)',
+        'rgba(125,200,255,.26)',
+        'rgba(125,200,255,.16)',
+        'rgba(125,200,255,.1)',
+      ];
+      charts.plan = new Chart(donutCtx, {
+        type: 'doughnut',
+        data: {
+          labels: planYearTotals.map(x => x.icon + ' ' + x.label),
+          datasets: [{
+            data: planYearTotals.map(x => x.val),
+            backgroundColor: planYearTotals.map((_,i) => blueShades[i % blueShades.length]),
+            borderColor: '#161616',
+            borderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                color: 'rgba(255,255,255,.5)',
+                boxWidth: 10, boxHeight: 10,
+                borderRadius: 3,
+                padding: 8,
+                font: { size: 11 },
+                generateLabels: function(chart) {
+                  const data = chart.data;
+                  return data.labels.map((label, i) => ({
+                    text: label + '  ' + fmtFull(planYearTotals[i].val),
+                    fillStyle: data.datasets[0].backgroundColor[i],
+                    strokeStyle: data.datasets[0].borderColor,
+                    lineWidth: 1,
+                    index: i
+                  }));
+                }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => ' ' + fmtFull(ctx.parsed) + ' (' + (planTotal>0?(ctx.parsed/planTotal*100).toFixed(1):'0') + '%)'
+              }
+            }
+          }
+        }
+      });
     }
   }
 
@@ -2253,13 +2355,15 @@ function renderDash(){
       labels: MONTHS_SHORT,
       datasets:[
         {label:'Planirano', data:planLine,
-         borderColor:'#39FF8F', backgroundColor:'rgba(57,255,143,0.12)',
+         borderColor:'#39FF8F',
+         backgroundColor:'rgba(57,255,143,0.15)',
          borderWidth:2, pointRadius:3, pointBackgroundColor:'#39FF8F', tension:0.3,
-         fill: {target:'1', above:'rgba(57,255,143,0.15)', below:'rgba(125,200,255,0.15)'}},
-        {label:'Stvarno',   data:actLine,
-         borderColor:'#7DC8FF', backgroundColor:'rgba(125,200,255,0.08)',
+         fill:'origin'},
+        {label:'Stvarno', data:actLine,
+         borderColor:'#7DC8FF',
+         backgroundColor:'rgba(125,200,255,0.12)',
          borderWidth:2, pointRadius:3, pointBackgroundColor:'#7DC8FF', tension:0.3,
-         fill: {target:'0', above:'rgba(57,255,143,0.0)', below:'rgba(125,200,255,0.08)'}},
+         fill:'origin'},
       ]
     },
     options:{
@@ -3316,7 +3420,7 @@ function setSyncStatus(state, msg) {
   // Sync bar removed — status shown in footer dot only
   const foot = document.getElementById('sb-live-dot');
   if(!foot) return;
-  foot.style.background = state==='ok' ? '#39FF8F' : state==='err' ? '#E86060' : '#F0B040';
+  foot.style.background = state==='ok' ? '#39FF8F' : state==='err' ? '#FF3B3B' : '#F0B040';
 }
 
 function collectLocalData() {
@@ -3504,6 +3608,7 @@ function waitForLayout() {
 // ── INIT ──
 // ── INIT ──
 checkPinOnLoad();
+buildGlobalPeriodPicker();
 </script>
 </body>
 </html>
