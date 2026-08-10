@@ -13,17 +13,17 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0F1117;--surface:#1A1D27;--border:#2A2D3A;--text:#E8EAF0;--muted:#6B7080;
-  --accent:#111827;--accent2:#1E3A5F;--green:#3DBE7A;--red:#E05252;--amber:#E8A838;
-  --sw:230px;--radius:12px;--rsm:8px;
-  --shadow:0 1px 4px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.2);
+  --bg:#111;--surface:#161616;--border:#222;--text:#F0F0F0;--muted:rgba(255,255,255,.35);
+  --accent:#000;--accent2:rgba(125,200,255,.1);--green:#39FF8F;--red:#E86060;--amber:#F0B040;
+  --sw:220px;--radius:10px;--rsm:7px;
+  --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 12px rgba(0,0,0,.3);
 
-  /* table dark theme */
-  --tb-bg:#1A1D27;--tb-surface:#22253A;--tb-border:#2A2D3A;
-  --tb-muted:#6B7080;--tb-text:#E8EAF0;
-  --tb-head:#0F1117;--tb-cat:#3DBE7A;--tb-cat-bg:#1A3A2A;
-  --tb-hover:#22253A;--tb-input:#22253A;
-  --tb-green:#3DBE7A;--tb-red:#E05252;
+  /* table */
+  --tb-bg:#161616;--tb-surface:#1A1A1A;--tb-border:#222;
+  --tb-muted:rgba(255,255,255,.3);--tb-text:#F0F0F0;
+  --tb-head:#111;--tb-cat:#39FF8F;--tb-cat-bg:rgba(57,255,143,.08);
+  --tb-hover:#1A1A1A;--tb-input:#1A1A1A;
+  --tb-green:#39FF8F;--tb-red:#E86060;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;color-scheme:dark}
@@ -64,7 +64,7 @@ html,body{height:100%;overflow:hidden}
 
 /* Drawer nav items */
 .ni{display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.6);font-size:14px;transition:all .15s;margin-bottom:1px;user-select:none}
-.ni.active{background:rgba(255,255,255,.16);color:#fff;font-weight:500}
+.ni.active{background:rgba(125,200,255,.12);color:#7DC8FF;font-weight:500}
 .ni svg{width:15px;height:15px;flex-shrink:0;opacity:.7}.ni.active svg{opacity:1}
 .np-h{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.6);font-size:14px;transition:all .15s;user-select:none;margin-bottom:1px}
 .np-h.open{color:#fff;background:rgba(255,255,255,.05)}
@@ -100,12 +100,12 @@ html,body{height:100%;overflow:hidden}
 
 /* metrics */
 .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
-.mc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.mc{background:#161616;border:1px solid #222;border-radius:var(--radius);padding:13px 15px}
 .mc-l{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.4px;text-transform:uppercase;margin-bottom:7px}
 .mc-v{font-size:21px;font-weight:600;letter-spacing:-.5px}
 .mc-s{font-size:11px;color:var(--muted);margin-top:4px}
 .pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--text)}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;box-shadow:var(--shadow);margin-bottom:18px}
+.card{background:#161616;border:1px solid #222;border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
 .ct{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
 .g2{display:grid;grid-template-columns:1fr;gap:14px}
 .cw{position:relative;width:100%}
@@ -365,7 +365,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.4.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v4.7.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -401,7 +401,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
     </svg>
   </button>
-  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v4.4.0</span></div>
+  <div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v4.7.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -518,12 +518,6 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 
 <!-- ════════════════ MAIN ════════════════ -->
 <main class="main">
-  <!-- SYNC BAR -->
-  <div class="sync-bar" id="sync-bar">
-    <div class="sync-dot" id="sync-dot"></div>
-    <span id="sync-status">—</span>
-    <button class="sync-btn" onclick="syncNow()">💾 Spremi u oblak</button>
-  </div>
 
   <!-- DASHBOARD -->
   <div id="page-dashboard" class="page active">
@@ -2104,23 +2098,60 @@ function renderDash(){
   const pvaHeight = Math.max(200, expCats.length * 44 + 60);
   document.getElementById('chartPvA').parentElement.style.height = pvaHeight + 'px';
   if(charts.pva) charts.pva.destroy();
+  // Stacked bar: plan + stvarno stacked
+  // If plan > stvarno: bottom=red(stvarno), top=green(plan-stvarno)
+  // If stvarno > plan: bottom=green(plan), top=red(stvarno-plan)
+  const pvaPlanned = expCats.map(c=>catSum('planned',c));
+  const pvaActual  = expCats.map(c=>catSum('actual',c));
+  const pvaBase    = pvaPlanned.map((p,i)=>Math.min(p, pvaActual[i]));
+  const pvaGreenBase = pvaPlanned.map((p,i)=>pvaActual[i]>=p ? p : pvaActual[i]);
+  const pvaRedBase   = pvaPlanned.map((p,i)=>pvaActual[i]>=p ? pvaActual[i]-p : 0);
+  const pvaGreenOver = pvaPlanned.map((p,i)=>pvaActual[i]>=p ? 0 : p-pvaActual[i]);
+
   charts.pva=new Chart(document.getElementById('chartPvA'),{
     type:'bar',
     data:{
       labels:expCats.map(c=>META[c].label),
       datasets:[
-        {label:'Planirano',data:expCats.map(c=>catSum('planned',c)),backgroundColor:'#2D9E6B',borderRadius:3},
-        {label:'Stvarno',  data:expCats.map(c=>catSum('actual',c)), backgroundColor:'#D94F3D',borderRadius:3},
+        // Bottom segment: min(plan,stvarno) — red when stvarno<plan, green when stvarno>=plan
+        {label:'_base',
+         data: pvaPlanned.map((p,i)=>pvaActual[i]>=p ? p : pvaActual[i]),
+         backgroundColor: pvaPlanned.map((p,i)=>pvaActual[i]>=p ? 'rgba(57,255,143,.65)' : 'rgba(232,96,96,.65)'),
+         borderWidth:0, stack:'s'},
+        // Top segment: difference — green when plan>stvarno, red when stvarno>plan
+        {label:'_top',
+         data: pvaPlanned.map((p,i)=>Math.abs(p-pvaActual[i])),
+         backgroundColor: pvaPlanned.map((p,i)=>p>=pvaActual[i] ? 'rgba(57,255,143,.65)' : 'rgba(232,96,96,.65)'),
+         borderWidth:0, stack:'s'},
       ]
     },
     options:{
       indexAxis:'y',
       responsive:true,
       maintainAspectRatio:false,
-      plugins:{legend:{labels:{boxWidth:11,font:{size:11}}}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title: ctx => expCats[ctx[0].dataIndex] ? META[expCats[ctx[0].dataIndex]].label : '',
+            label: ctx => {
+              const i = ctx.dataIndex;
+              const p = pvaPlanned[i], a = pvaActual[i];
+              return [` Plan: ${p.toLocaleString('hr-HR')} €`, ` Stvarno: ${a.toLocaleString('hr-HR')} €`];
+            },
+            afterBody: ctx => {
+              const i = ctx[0].dataIndex;
+              const diff = pvaPlanned[i] - pvaActual[i];
+              return diff >= 0 ? ` Uštedina: ${diff.toLocaleString('hr-HR')} €` : ` Prekoračenje: ${Math.abs(diff).toLocaleString('hr-HR')} €`;
+            }
+          }
+        }
+      },
       scales:{
-        x:{ticks:{callback:v=>v.toLocaleString()+'€',font:{size:10}},grid:{color:'rgba(0,0,0,0.04)'}},
-        y:{grid:{display:false},ticks:{font:{size:11}}}
+        x:{ticks:{callback:v=>v.toLocaleString()+'€',font:{size:10},color:'rgba(255,255,255,.35)'},
+           grid:{color:'rgba(255,255,255,.05)'}},
+        y:{grid:{display:false},ticks:{font:{size:11},color:'rgba(255,255,255,.5)'},
+           stacked:true}
       }
     }
   });
@@ -2221,21 +2252,27 @@ function renderDash(){
     data:{
       labels: MONTHS_SHORT,
       datasets:[
-        {label:'Planirano', data:planLine, borderColor:'#5B7ED6', backgroundColor:'rgba(91,126,214,0.08)',
-         borderWidth:2, pointRadius:3, pointBackgroundColor:'#5B7ED6', tension:0.3, fill:true},
-        {label:'Stvarno',   data:actLine,  borderColor:'#2D9E6B', backgroundColor:'rgba(45,158,107,0.08)',
-         borderWidth:2, pointRadius:3, pointBackgroundColor:'#2D9E6B', tension:0.3, fill:true},
+        {label:'Planirano', data:planLine,
+         borderColor:'#39FF8F', backgroundColor:'rgba(57,255,143,0.12)',
+         borderWidth:2, pointRadius:3, pointBackgroundColor:'#39FF8F', tension:0.3,
+         fill: {target:'1', above:'rgba(57,255,143,0.15)', below:'rgba(125,200,255,0.15)'}},
+        {label:'Stvarno',   data:actLine,
+         borderColor:'#7DC8FF', backgroundColor:'rgba(125,200,255,0.08)',
+         borderWidth:2, pointRadius:3, pointBackgroundColor:'#7DC8FF', tension:0.3,
+         fill: {target:'0', above:'rgba(57,255,143,0.0)', below:'rgba(125,200,255,0.08)'}},
       ]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{labels:{boxWidth:11,font:{size:11}}},
-        tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2})} €`}}
+        legend:{labels:{boxWidth:11,font:{size:11},color:'rgba(255,255,255,.5)'}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('hr-HR',{minimumFractionDigits:0})} €`}}
       },
       scales:{
-        x:{grid:{display:false}, ticks:{font:{size:10}}},
-        y:{ticks:{callback:v=>v.toLocaleString('hr-HR',{maximumFractionDigits:0})+'€', font:{size:10}}}
+        x:{grid:{display:false}, ticks:{font:{size:10},color:'rgba(255,255,255,.35)'}},
+        y:{ticks:{callback:v=>v.toLocaleString('hr-HR',{maximumFractionDigits:0})+'€',
+           font:{size:10},color:'rgba(255,255,255,.35)'},
+           grid:{color:'rgba(255,255,255,.05)'}}
       }
     }
   });
@@ -3276,11 +3313,10 @@ let suppressNextSnapshot = false;
 let firestoreUnsub = null;
 
 function setSyncStatus(state, msg) {
-  const dot = document.getElementById('sync-dot');
-  const txt = document.getElementById('sync-status');
-  if(!dot||!txt) return;
-  dot.className = 'sync-dot ' + state;
-  txt.textContent = msg;
+  // Sync bar removed — status shown in footer dot only
+  const foot = document.getElementById('sb-live-dot');
+  if(!foot) return;
+  foot.style.background = state==='ok' ? '#39FF8F' : state==='err' ? '#E86060' : '#F0B040';
 }
 
 function collectLocalData() {
