@@ -236,9 +236,9 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 .set-def-inp::placeholder{color:var(--muted);opacity:.5}
 .set-radio-btn{padding:4px 10px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--muted);transition:all .12s;white-space:nowrap}
 .set-radio-btn:hover{border-color:var(--accent);color:var(--accent)}
-.set-radio-btn.active-prihod{background:#E8F5EE;border-color:#2D9E6B;color:#1A6B45}
-.set-radio-btn.active-rashod{background:#FEEFEE;border-color:#D94F3D;color:#9B2B1E}
-.set-radio-btn.active-zajednicki{background:#EEF2FB;border-color:#5B7ED6;color:#2A4BAD}
+.set-radio-btn.active-prihod{background:rgba(57,255,143,.12);border-color:#39FF8F;color:#39FF8F}
+.set-radio-btn.active-rashod{background:rgba(255,59,59,.12);border-color:#FF3B3B;color:#FF3B3B}
+.set-radio-btn.active-zajednicki{background:rgba(96,165,250,.12);border-color:#60A5FA;color:#60A5FA}
 .set-col-hdr{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:6px 4px 4px;border-bottom:1px solid var(--border);margin-bottom:2px}
 .set-col-labels{display:flex;gap:4px}
 .set-col-lbl{width:82px;text-align:center;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
@@ -368,7 +368,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.5.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v5.7.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -413,7 +413,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
     </select>
   </div>
 </div>
-<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v5.5.0</span></div>
+<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v5.7.0</span></div>
   <div class="period-bar-header" id="period-bar-header"></div>
 </header>
 
@@ -632,76 +632,76 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 const CATS_DEFAULT = ['prihodi','rezije','kucanstvo','automobili','pretplate','izlasci','stednja','zajednicki'];
 
 const META_DEFAULT = {
-  prihodi:    {label:'Prihodi',           icon:'💰', color:'#2D9E6B', income:true },
-  rezije:     {label:'Režije i krediti',  icon:'💡', color:'#2A6BAD', income:false},
-  kucanstvo:  {label:'Kućanstvo',         icon:'🏠', color:'#8B5CF6', income:false},
-  automobili: {label:'Automobili',        icon:'🚗', color:'#C47A1E', income:false},
-  pretplate:  {label:'Pretplate',         icon:'📱', color:'#1A9490', income:false},
-  izlasci:    {label:'Zabava',            icon:'🎉', color:'#D94F3D', income:false},
-  stednja:    {label:'Štednja',           icon:'🏦', color:'#5B7ED6', income:false},
-  zajednicki: {label:'Uplata na zajednički račun', icon:'🏛', color:'#2D9E6B', income:false},
+  prihodi:    {label:'Prihodi',           icon:'💰', color:'#39FF8F', income:true },
+  rezije:     {label:'Režije i krediti',  icon:'💡', color:'#7DC8FF', income:false},
+  kucanstvo:  {label:'Kućanstvo',         icon:'🏠', color:'#C084FC', income:false},
+  automobili: {label:'Automobili',        icon:'🚗', color:'#FB923C', income:false},
+  pretplate:  {label:'Pretplate',         icon:'📱', color:'#34D4C8', income:false},
+  izlasci:    {label:'Zabava',            icon:'🎉', color:'#FF3B3B', income:false},
+  stednja:    {label:'Štednja',           icon:'🏦', color:'#FACC15', income:false},
+  zajednicki: {label:'Uplata na zajednički račun', icon:'🏛', color:'#60A5FA', income:false},
 };
 
 const SUBCATS_DEFAULT = {
   prihodi: [
-    {key:'placa_matea',   label:'Plaća Matea',         color:'#2D9E6B'},
-    {key:'bonus_matea',   label:'Bonus Matea',          color:'#1A9490'},
-    {key:'povrat_matea',  label:'Povrat poreza Matea',  color:'#5B7ED6'},
-    {key:'najam_matea',   label:'Najam Matea',          color:'#8B5CF6'},
-    {key:'placa_matija',  label:'Plaća Matija',         color:'#C47A1E'},
-    {key:'bonus_matija',  label:'Bonus Matija',         color:'#D94F3D'},
-    {key:'povrat_matija', label:'Povrat poreza Matija', color:'#2A6BAD'},
-    {key:'najam_matija',  label:'Najam Matija',         color:'#1A9490'},
+    {key:'placa_matea',   label:'Plaća Matea',         color:'#39FF8F'},
+    {key:'bonus_matea',   label:'Bonus Matea',          color:'#34D4C8'},
+    {key:'povrat_matea',  label:'Povrat poreza Matea',  color:'#FACC15'},
+    {key:'najam_matea',   label:'Najam Matea',          color:'#C084FC'},
+    {key:'placa_matija',  label:'Plaća Matija',         color:'#FB923C'},
+    {key:'bonus_matija',  label:'Bonus Matija',         color:'#FF3B3B'},
+    {key:'povrat_matija', label:'Povrat poreza Matija', color:'#7DC8FF'},
+    {key:'najam_matija',  label:'Najam Matija',         color:'#34D4C8'},
   ],
   rezije: [
-    {key:'kredit_matea', label:'Kredit Matea',      color:'#2A6BAD'},
-    {key:'kredit_matija',label:'Kredit Matija',     color:'#5B7ED6'},
-    {key:'struja',       label:'Struja',            color:'#C47A1E'},
-    {key:'voda',         label:'Voda',              color:'#1A9490'},
-    {key:'plin',         label:'Plin',              color:'#D94F3D'},
-    {key:'smece',        label:'Smeće',             color:'#71717A'},
-    {key:'hrt',          label:'HRT',               color:'#8B5CF6'},
-    {key:'komunalna',    label:'Komunalna naknada', color:'#2D9E6B'},
-    {key:'pricuva',      label:'Pričuva',           color:'#1A9490'},
-    {key:'mobitel',      label:'Mobitel',           color:'#C47A1E'},
-    {key:'internet',     label:'Internet',          color:'#2A6BAD'},
+    {key:'kredit_matea', label:'Kredit Matea',      color:'#7DC8FF'},
+    {key:'kredit_matija',label:'Kredit Matija',     color:'#FACC15'},
+    {key:'struja',       label:'Struja',            color:'#FB923C'},
+    {key:'voda',         label:'Voda',              color:'#34D4C8'},
+    {key:'plin',         label:'Plin',              color:'#FF3B3B'},
+    {key:'smece',        label:'Smeće',             color:'#94A3B8'},
+    {key:'hrt',          label:'HRT',               color:'#C084FC'},
+    {key:'komunalna',    label:'Komunalna naknada', color:'#39FF8F'},
+    {key:'pricuva',      label:'Pričuva',           color:'#34D4C8'},
+    {key:'mobitel',      label:'Mobitel',           color:'#FB923C'},
+    {key:'internet',     label:'Internet',          color:'#7DC8FF'},
   ],
   kucanstvo: [
-    {key:'popravci', label:'Popravci i namještaj', color:'#8B5CF6'},
-    {key:'ducani',   label:'Dućani',               color:'#2D9E6B'},
-    {key:'ljekarna', label:'Ljekarna',             color:'#D94F3D'},
-    {key:'pranje',   label:'Pranje i peglanje',    color:'#1A9490'},
-    {key:'lovro',    label:'Lovro',                color:'#C47A1E'},
-    {key:'vrtic',    label:'Vrtić',                color:'#2D9E6B'},
+    {key:'popravci', label:'Popravci i namještaj', color:'#C084FC'},
+    {key:'ducani',   label:'Dućani',               color:'#39FF8F'},
+    {key:'ljekarna', label:'Ljekarna',             color:'#FF3B3B'},
+    {key:'pranje',   label:'Pranje i peglanje',    color:'#34D4C8'},
+    {key:'lovro',    label:'Lovro',                color:'#FB923C'},
+    {key:'vrtic',    label:'Vrtić',                color:'#39FF8F'},
   ],
   automobili: [
-    {key:'leasing',      label:'Leasing',      color:'#C47A1E'},
-    {key:'osiguranje',   label:'Osiguranje',   color:'#2A6BAD'},
-    {key:'registracije', label:'Registracije', color:'#5B7ED6'},
-    {key:'servis',       label:'Servis',       color:'#D94F3D'},
-    {key:'gorivo',       label:'Gorivo',       color:'#1A9490'},
+    {key:'leasing',      label:'Leasing',      color:'#FB923C'},
+    {key:'osiguranje',   label:'Osiguranje',   color:'#7DC8FF'},
+    {key:'registracije', label:'Registracije', color:'#FACC15'},
+    {key:'servis',       label:'Servis',       color:'#FF3B3B'},
+    {key:'gorivo',       label:'Gorivo',       color:'#34D4C8'},
   ],
   pretplate: [
-    {key:'netflix',    label:'Netflix',       color:'#D94F3D'},
-    {key:'remarkable', label:'Remarkable',    color:'#2A6BAD'},
-    {key:'ytmusic',    label:'YouTube Music', color:'#8B5CF6'},
-    {key:'ai',         label:'AI',            color:'#1A9490'},
-    {key:'sketchup',   label:'Sketchup',      color:'#C47A1E'},
+    {key:'netflix',    label:'Netflix',       color:'#FF3B3B'},
+    {key:'remarkable', label:'Remarkable',    color:'#7DC8FF'},
+    {key:'ytmusic',    label:'YouTube Music', color:'#C084FC'},
+    {key:'ai',         label:'AI',            color:'#34D4C8'},
+    {key:'sketchup',   label:'Sketchup',      color:'#FB923C'},
   ],
   izlasci: [
-    {key:'izlasci',        label:'Izlasci',       color:'#D94F3D'},
-    {key:'pokloni',        label:'Pokloni',       color:'#C47A1E'},
-    {key:'proslave',       label:'Proslave',      color:'#8B5CF6'},
-    {key:'deparac_matija', label:'Đeparac Matija', color:'#5B7ED6'},
-    {key:'deparac_matea',  label:'Đeparac Matea',  color:'#2D9E6B'},
+    {key:'izlasci',        label:'Izlasci',       color:'#FF3B3B'},
+    {key:'pokloni',        label:'Pokloni',       color:'#FB923C'},
+    {key:'proslave',       label:'Proslave',      color:'#C084FC'},
+    {key:'deparac_matija', label:'Đeparac Matija', color:'#FACC15'},
+    {key:'deparac_matea',  label:'Đeparac Matea',  color:'#39FF8F'},
   ],
   stednja: [
-    {key:'sp500',      label:'S&P 500',       color:'#5B7ED6'},
-    {key:'xau_revolut', label:'XAU - Revolut', color:'#C47A1E'},
-    {key:'xau_banka',   label:'XAU - Banka',   color:'#B8860B'},
+    {key:'sp500',      label:'S&P 500',       color:'#FACC15'},
+    {key:'xau_revolut', label:'XAU - Revolut', color:'#FB923C'},
+    {key:'xau_banka',   label:'XAU - Banka',   color:'#FACC15'},
   ],
   zajednicki: [
-    {key:'zajednicki_uplata', label:'Uplata na zajednički račun', color:'#2D9E6B'},
+    {key:'zajednicki_uplata', label:'Uplata na zajednički račun', color:'#39FF8F'},
   ],
 };
 
@@ -877,8 +877,8 @@ function renderKalkulator() {
   const periodLabel = testMode ? 'TEST' : (MONTHS_HR[selMonth-1]+' '+selYear);
 
   const persons = [
-    {id:'matea',  name:'Matea',  color:'#2D9E6B'},
-    {id:'matija', name:'Matija', color:'#2A6BAD'},
+    {id:'matea',  name:'Matea',  color:'#39FF8F'},
+    {id:'matija', name:'Matija', color:'#7DC8FF'},
   ];
 
   let totalUplata = 0;
@@ -1710,10 +1710,10 @@ function getActivePortfolios() {
   return Object.fromEntries(Object.entries(INV_PORTFOLIOS_DEF).filter(([k])=>cfg[k]!==false));
 }
 const INV_PORTFOLIOS_SEED = {
-  xau_banka:   {label:'XAU - Banka',   unit:'g',  unitLabel:'gram', color:'#B8860B', priceLabel:'Cijena zlata (€/g)'},
-  xau_revolut: {label:'XAU - Revolut', unit:'g',  unitLabel:'gram', color:'#C47A1E', priceLabel:'Cijena zlata (€/g)'},
-  sp500:       {label:'S&P 500',       unit:'udj', unitLabel:'udjel', color:'#2A6BAD', priceLabel:'Cijena udjela (€/udj)'},
-  xau_lovro:   {label:'XAU - Lovro',    unit:'g',   unitLabel:'gram',  color:'#2D9E6B', priceLabel:'Cijena zlata (€/g)'},
+  xau_banka:   {label:'XAU - Banka',   unit:'g',  unitLabel:'gram', color:'#FACC15', priceLabel:'Cijena zlata (€/g)'},
+  xau_revolut: {label:'XAU - Revolut', unit:'g',  unitLabel:'gram', color:'#FB923C', priceLabel:'Cijena zlata (€/g)'},
+  sp500:       {label:'S&P 500',       unit:'udj', unitLabel:'udjel', color:'#7DC8FF', priceLabel:'Cijena udjela (€/udj)'},
+  xau_lovro:   {label:'XAU - Lovro',    unit:'g',   unitLabel:'gram',  color:'#39FF8F', priceLabel:'Cijena zlata (€/g)'},
 };
 
 const PORT_STRUCT_KEY = 'app_portfolios_v1';
@@ -2254,23 +2254,23 @@ function renderDash(){
           responsive: true,
           maintainAspectRatio: false,
           cutout: '65%',
+          layout: { padding: { left: 0 } },
           plugins: {
             legend: {
-              position: 'right',
+              position: 'left',
               labels: {
-                color: 'rgba(255,255,255,.7)',
-                boxWidth: 10, boxHeight: 10,
-                borderRadius: 3,
-                padding: 10,
-                font: { size: 11 },
+                color: 'rgba(255,255,255,.85)',
+                boxWidth: 12, boxHeight: 12,
+                borderRadius: 4,
+                padding: 14,
+                font: { size: 13, weight: '500' },
                 generateLabels: function(chart) {
                   const data = chart.data;
                   return data.labels.map((label, i) => ({
-                    text: label + '  ' + fmtFull(planYearTotals[i].val),
+                    text: label + '   ' + fmtFull(planYearTotals[i].val),
                     fillStyle: data.datasets[0].backgroundColor[i],
                     strokeStyle: 'transparent',
                     lineWidth: 0,
-                    fontColor: 'rgba(255,255,255,.7)',
                     index: i
                   }));
                 }
