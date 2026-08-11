@@ -30,7 +30,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .layout{display:flex;min-height:100vh}
 
 /* ── MOBILE LAYOUT ── */
-html,body{height:100%;overflow:hidden}
+*,*::before,*::after{box-sizing:border-box}
+img,canvas,svg{max-width:100%}
+html,body{height:100%;overflow:hidden;max-width:100vw}
 .layout{display:flex;flex-direction:column;height:100%;overflow:hidden}
 
 /* Top header bar */
@@ -56,11 +58,11 @@ html,body{height:100%;overflow:hidden}
 /* Slide-out drawer */
 .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
 .drawer-overlay.open{opacity:1;pointer-events:all}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;background:var(--accent);z-index:301;
+.drawer{position:fixed;top:0;left:0;bottom:0;width:80vw;max-width:280px;background:#000;z-index:301;
         transform:translateX(-100%);transition:transform .28s ease;overflow-y:auto;
         padding-top:env(safe-area-inset-top)}
 .drawer.open{transform:translateX(0)}
-.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,.1)}
+.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
 .drawer-hdr h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;color:#fff}
 .drawer-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
 .drawer-nav{padding:10px 8px}
@@ -83,7 +85,7 @@ html,body{height:100%;overflow:hidden}
 .nc.active .nc-dot{opacity:1}
 
 /* ── MAIN ── */
-.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+.main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;max-width:100%;
       padding:72px 16px 32px;
       padding-top:calc(56px + env(safe-area-inset-top) + 16px);
       padding-bottom:calc(16px + env(safe-area-inset-bottom))}
@@ -133,7 +135,7 @@ input:focus,select:focus{border-color:#7DC8FF;background:var(--bg);color:var(--t
 input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px var(--bg) inset;-webkit-text-fill-color:var(--text);caret-color:var(--text)}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rsm);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
 .btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
-.st-wrap{width:100%;overflow-x:auto}
+.st-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:calc(100vw - 32px)}
 .st{width:100%;border-collapse:collapse;font-size:13px}
 .st th{text-align:left;font-weight:500;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0 0 8px;border-bottom:1px solid var(--border)}
 .st td{padding:9px 0;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -273,14 +275,14 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 
 
 /* sync status */
-.sync-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
+
 .sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#ccc}
 .sync-dot.ok{background:var(--green)}
 .sync-dot.err{background:var(--red)}
 .sync-dot.syncing{background:var(--amber);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.sync-btn{margin-left:auto;padding:4px 10px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+._sync-btn-removed{margin-left:auto;padding:4px 10px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
 .sync-btn:hover{background:var(--bg);color:var(--text)}
 
 
@@ -369,7 +371,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.1.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.2.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -408,14 +410,14 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <div class="sb-period">
   <div class="sb-period-label">Period</div>
   <div style="display:flex;gap:6px">
-    <select id="global-year" onchange="globalSetYear(+this.value)" style="flex:1;padding:5px 8px;font-size:12px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.06);color:#fff;cursor:pointer">
+    <select id="global-year" onchange="globalSetYear(+this.value)" style="flex:1;padding:6px 8px;font-size:13px;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;cursor:pointer">
     </select>
-    <select id="global-month" onchange="globalSetMonth(this.value)" style="flex:1;padding:5px 8px;font-size:12px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.06);color:#fff;cursor:pointer">
+    <select id="global-month" onchange="globalSetMonth(this.value)" style="flex:1;padding:6px 8px;font-size:13px;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;cursor:pointer">
     </select>
   </div>
 </div>
-<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v6.1.0</span></div>
-  <div class="period-bar-header" id="period-bar-header"></div>
+<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v6.2.0</span></div>
+
 </header>
 
 <!-- Drawer overlay -->
