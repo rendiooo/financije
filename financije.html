@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.8.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.9.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v6.8.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v6.9.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -560,7 +560,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
     <div class="card" style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:14px">🏗️ Praćenje kredita</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Svaki kredit možete vezati na podkategoriju u troškovima — uplate se automatski oduzimaju od preostalog iznosa.</p>
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:12px"><span style="font-size:13px">🛒 Iznos kredita dostupnog za nabavu nekretnine</span><input type="number" min="0" step="0.01" placeholder="0.00" style="width:160px;text-align:right;margin-left:auto" onchange="setKreditNabavaPocetni(this.value);renderDash()" id="kredit-nabava-inp"><span style="color:var(--muted)">€</span></div>
+
       <div id="settings-krediti"></div>
     </div>
     <div id="settings-body"></div>
@@ -2087,28 +2087,6 @@ function renderDash(){
 
   document.getElementById('dash-flow').innerHTML = `
     ${(()=>{
-      const nabavaPoc = getKreditNabavaPocetni();
-      const nabavaPot = getKreditNabavaPotrosen();
-      const nabavaPre = getKreditNabavaPreostalo();
-      const showNabava = getKreditNabavaShow();
-      const nabavaPct = nabavaPoc>0 ? Math.min(100,(nabavaPot/nabavaPoc*100)).toFixed(1) : 0;
-      const nabavaCard = nabavaPoc>0 ? '<div class="card" style="margin-bottom:14px;border-left:3px solid #7DC8FF">'
-        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-        + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">🛒 Preostalo za nabavu</div>'
-        + '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted)">'
-        + '<input type="checkbox" '+(showNabava?'checked':'')+' onclick="toggleKreditNabavaShow()" style="accent-color:#7DC8FF;cursor:pointer">'
-        + 'Prikaži</label></div>'
-        + (showNabava ? '<div style="font-size:26px;font-weight:700;color:#7DC8FF">'+fmtFull(Math.max(0,nabavaPre))+'</div>'
-          + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Potrošeno: '+fmtFull(nabavaPot)+' od '+fmtFull(nabavaPoc)+'</div>'
-          + '<div style="height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden">'
-          + '<div style="height:100%;width:'+nabavaPct+'%;background:var(--red);border-radius:2px"></div></div>'
-          + '<div style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right">'+nabavaPct+'% potrošeno</div>'
-          : '<div style="font-size:13px;color:var(--muted)">Uključite za prikaz preostalog iznosa.</div>')
-        + '</div>' : '';
-      return nabavaCard;
-    })()}
-
-    ${(()=>{
       const kArr = loadKrediti();
       if(!kArr.length) return '';
       const totalPocetni = kArr.reduce((s,k)=>s+k.pocetni,0);
@@ -2116,7 +2094,25 @@ function renderDash(){
       const totalOtplaceno = kArr.reduce((s,k)=>s+getKreditOtplaceno(k),0);
       const totalUkupno = kArr.reduce((s,k)=>s+getKreditUkupno(k),0);
       const pct = totalUkupno>0 ? Math.min(100,(totalOtplaceno/totalUkupno*100)).toFixed(1) : 0;
-      return '<div class="card" style="margin-bottom:16px;border-left:3px solid var(--amber)">'
+
+      // Nabava cards for krediti with showNabava=true
+      const nabavaPot = getKreditNabavaPotrosen();
+      const nabavaCards = kArr.filter(k=>k.showNabava).map(k=>{
+        const glavnica = k.pocetni;
+        const potroseno = nabavaPot;
+        const preostalo = Math.max(0, glavnica - potroseno);
+        const npct = glavnica>0 ? Math.min(100,(potroseno/glavnica*100)).toFixed(1) : 0;
+        return '<div class="card" style="margin-bottom:14px;border-left:3px solid #7DC8FF">'
+          + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px">🛒 '+k.naziv+' — preostalo za nabavu</div>'
+          + '<div style="font-size:26px;font-weight:700;color:#7DC8FF">'+fmtFull(preostalo)+'</div>'
+          + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Potrošeno: '+fmtFull(potroseno)+' od '+fmtFull(glavnica)+'</div>'
+          + '<div style="height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden">'
+          + '<div style="height:100%;width:'+npct+'%;background:var(--red);border-radius:2px"></div></div>'
+          + '<div style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right">'+npct+'% potrošeno</div>'
+          + '</div>';
+      }).join('');
+
+      return nabavaCards + '<div class="card" style="margin-bottom:16px;border-left:3px solid var(--amber)">'
         + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">🏗️ Preostali krediti</div>'
         + kArr.map(k=>{
             const p = getKreditPreostaloById(k);
@@ -3478,6 +3474,12 @@ function saveKrediti(arr) {
   scheduleAutoPush();
 }
 
+function toggleKreditShowNabava(id) {
+  const arr = loadKrediti();
+  const k = arr.find(x=>x.id===id);
+  if(k) { k.showNabava = !k.showNabava; saveKrediti(arr); renderDash(); }
+}
+
 function getKreditNabavaShow() {
   return localStorage.getItem('kredit_nabava_show') === '1';
 }
@@ -3557,7 +3559,7 @@ function getKreditPctOtplaceno(kredit) {
 function addKredit(naziv, pocetni, catKey, subKey, kamata) {
   const arr = loadKrediti();
   const id = 'k_' + Date.now();
-  arr.push({ id, naziv, pocetni: parseFloat(pocetni)||0, catKey, subKey, rucniPreostali: null, kamata: parseFloat(kamata)||0 });
+  arr.push({ id, naziv, pocetni: parseFloat(pocetni)||0, catKey, subKey, rucniPreostali: null, kamata: parseFloat(kamata)||0, showNabava: false });
   saveKrediti(arr);
   // Create subcat if not exists
   ensureKreditSubcat(catKey, subKey, naziv);
@@ -3611,7 +3613,13 @@ function renderKreditSettings() {
     const pct = getKreditPctOtplaceno(k).toFixed(1);
     return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="font-size:14px;font-weight:600">${k.naziv}</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:14px;font-weight:600">${k.naziv}</div>
+          <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--muted)">
+            <input type="checkbox" ${k.showNabava?'checked':''} onclick="toggleKreditShowNabava('${k.id}')" style="accent-color:#7DC8FF;cursor:pointer">
+            Prikaži na dashboardu
+          </label>
+        </div>
         <button class="crud-btn crud-del" onclick="if(confirm('Obrisati kredit \'${k.naziv}\'?')){removeKredit('${k.id}');renderKreditSettings();renderDash()}">🗑</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
