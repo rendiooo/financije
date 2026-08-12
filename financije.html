@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.3.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.4.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v6.3.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v6.4.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -556,6 +556,22 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <div class="ct" style="margin-bottom:14px">Investicijski portfelji</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Uključite ili isključite portfelje koji se prikazuju na dashboardu i u navigaciji.</p>
       <div id="settings-portfolios"></div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:14px">🏗️ Praćenje kredita</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Unesite početni iznos kredita. Svaka nabava upisana u nekretninama automatski se oduzima i prikazuje preostali iznos na dashboardu.</p>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Početni iznos kredita</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="number" id="kredit-pocetni-inp" min="0" step="0.01" placeholder="0.00"
+              style="width:180px;text-align:right;font-size:15px;font-weight:600"
+              onchange="setKreditPocetni(this.value);renderSettings()">
+            <span style="color:var(--muted)">€</span>
+          </div>
+        </div>
+        <div id="kredit-info" style="font-size:12px;color:var(--muted);padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)"></div>
+      </div>
     </div>
     <div id="settings-body"></div>
   </div>
@@ -1106,6 +1122,13 @@ function renderSettings() {
 
   renderKalkSettings();
   renderMojDomSetting();
+  // Populate kredit input
+  const kinp = document.getElementById('kredit-pocetni-inp');
+  if(kinp) { kinp.value = getKreditPocetni()||''; }
+  const kinfo = document.getElementById('kredit-info');
+  if(kinfo && getKreditPocetni()>0) {
+    kinfo.textContent = 'Iskorišteno: '+fmtFull(getKreditPotrosen())+' · Preostalo: '+fmtFull(Math.max(0,getKreditPreostalo()));
+  }
   // Render year lock section
   const lockEl = document.getElementById('settings-year-lock');
   if(lockEl) {
@@ -2088,6 +2111,30 @@ function renderDash(){
       <div class="mc"><div class="mc-l">Stvarno stanje zajedničkog računa</div><div class="mc-v ${actStanje>=0?'pos':'neg'}">${actStanje>=0?'':'−'}${fmtFull(Math.abs(actStanje))}</div></div>
       <div class="mc"><div class="mc-l">Planirana bilanca</div><div class="mc-v ${planBal>=0?'pos':'neg'}">${planBal>=0?'+':'−'}${fmtFull(Math.abs(planBal))}</div></div>
       <div class="mc"><div class="mc-l">Stvarna bilanca</div><div class="mc-v ${actBal>=0?'pos':'neg'}">${actBal>=0?'+':'−'}${fmtFull(Math.abs(actBal))}</div></div>
+      ${getKreditPocetni()>0?`
+      <div class="mc" style="border-left:3px solid var(--amber);grid-column:1/-1">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+          <div>
+            <div class="mc-l">🏗️ Preostali iznos kredita</div>
+            <div class="mc-v" style="color:${getKreditPreostalo()>=0?'var(--amber)':'var(--red)'}">
+              ${fmtFull(Math.max(0,getKreditPreostalo()))}
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:10px;color:var(--muted)">Početni iznos</div>
+            <div style="font-size:13px;color:var(--muted)">${fmtFull(getKreditPocetni())}</div>
+            <div style="font-size:11px;color:var(--red);margin-top:2px">Iskorišteno: ${fmtFull(getKreditPotrosen())}</div>
+          </div>
+        </div>
+        <div style="margin-top:10px;height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${Math.min(100,(getKreditPotrosen()/getKreditPocetni()*100)).toFixed(1)}%;background:var(--red);border-radius:2px;transition:width .4s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--muted)">
+          <span>${(getKreditPotrosen()/getKreditPocetni()*100).toFixed(1)}% iskorišteno</span>
+          <span>${(100-getKreditPotrosen()/getKreditPocetni()*100).toFixed(1)}% preostalo</span>
+        </div>
+      </div>
+      `:''}
     </div>
     <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Investicije</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px">
@@ -3405,6 +3452,26 @@ function renderNabavaTable(nekretKey) {
     </tr>`).join('');
 }
 
+
+// ── KREDIT TRACKER ──
+const KREDIT_KEY = 'kredit_pocetni';
+function getKreditPocetni() { return parseFloat(localStorage.getItem(KREDIT_KEY)||'0')||0; }
+function setKreditPocetni(val) {
+  if(parseFloat(val)||0) localStorage.setItem(KREDIT_KEY, String(parseFloat(val)));
+  else localStorage.removeItem(KREDIT_KEY);
+  scheduleAutoPush();
+}
+function getKreditPotrosen() {
+  // Sum all nabava items across ALL nekretnine
+  const data = loadNekretnine();
+  return Object.values(data).reduce((s,n) => {
+    return s + ((n.nabava||[]).reduce((ss,item)=>ss+item.iznos, 0));
+  }, 0);
+}
+function getKreditPreostalo() {
+  return getKreditPocetni() - getKreditPotrosen();
+}
+
 // ══════════════════════════════════════════════
 // PIN LOCK
 // ══════════════════════════════════════════════
@@ -3503,7 +3570,7 @@ function setSyncStatus(state, msg) {
 
 function collectLocalData() {
   const data = {};
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','kredit_pocetni'];
   for(let i=0;i<localStorage.length;i++) {
     const k = localStorage.key(i);
     if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
@@ -3512,7 +3579,7 @@ function collectLocalData() {
 }
 
 function applyCloudData(data) {
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','kredit_pocetni'];
   Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
     .forEach(k=>localStorage.removeItem(k));
   Object.entries(data).forEach(([k,v])=>{ if(k!=='_updated') localStorage.setItem(k,v); });
