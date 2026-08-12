@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.7.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.8.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v6.7.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v6.8.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -560,6 +560,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
     <div class="card" style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:14px">🏗️ Praćenje kredita</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Svaki kredit možete vezati na podkategoriju u troškovima — uplate se automatski oduzimaju od preostalog iznosa.</p>
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);margin-bottom:12px"><span style="font-size:13px">🛒 Iznos kredita dostupnog za nabavu nekretnine</span><input type="number" min="0" step="0.01" placeholder="0.00" style="width:160px;text-align:right;margin-left:auto" onchange="setKreditNabavaPocetni(this.value);renderDash()" id="kredit-nabava-inp"><span style="color:var(--muted)">€</span></div>
       <div id="settings-krediti"></div>
     </div>
     <div id="settings-body"></div>
@@ -1112,6 +1113,7 @@ function renderSettings() {
   renderKalkSettings();
   renderMojDomSetting();
   renderKreditSettings();
+  const kni=document.getElementById('kredit-nabava-inp'); if(kni) kni.value=getKreditNabavaPocetni()||'';
 
   // Render year lock section
   const lockEl = document.getElementById('settings-year-lock');
@@ -2085,6 +2087,28 @@ function renderDash(){
 
   document.getElementById('dash-flow').innerHTML = `
     ${(()=>{
+      const nabavaPoc = getKreditNabavaPocetni();
+      const nabavaPot = getKreditNabavaPotrosen();
+      const nabavaPre = getKreditNabavaPreostalo();
+      const showNabava = getKreditNabavaShow();
+      const nabavaPct = nabavaPoc>0 ? Math.min(100,(nabavaPot/nabavaPoc*100)).toFixed(1) : 0;
+      const nabavaCard = nabavaPoc>0 ? '<div class="card" style="margin-bottom:14px;border-left:3px solid #7DC8FF">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+        + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">🛒 Preostalo za nabavu</div>'
+        + '<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--muted)">'
+        + '<input type="checkbox" '+(showNabava?'checked':'')+' onclick="toggleKreditNabavaShow()" style="accent-color:#7DC8FF;cursor:pointer">'
+        + 'Prikaži</label></div>'
+        + (showNabava ? '<div style="font-size:26px;font-weight:700;color:#7DC8FF">'+fmtFull(Math.max(0,nabavaPre))+'</div>'
+          + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Potrošeno: '+fmtFull(nabavaPot)+' od '+fmtFull(nabavaPoc)+'</div>'
+          + '<div style="height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden">'
+          + '<div style="height:100%;width:'+nabavaPct+'%;background:var(--red);border-radius:2px"></div></div>'
+          + '<div style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right">'+nabavaPct+'% potrošeno</div>'
+          : '<div style="font-size:13px;color:var(--muted)">Uključite za prikaz preostalog iznosa.</div>')
+        + '</div>' : '';
+      return nabavaCard;
+    })()}
+
+    ${(()=>{
       const kArr = loadKrediti();
       if(!kArr.length) return '';
       const totalPocetni = kArr.reduce((s,k)=>s+k.pocetni,0);
@@ -2096,8 +2120,8 @@ function renderDash(){
         + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">🏗️ Preostali krediti</div>'
         + kArr.map(k=>{
             const p = getKreditPreostaloById(k);
-            const o = getKreditOtplaceno(k);
-            const pp = getKreditUkupno(k)>0?Math.min(100,(o/getKreditUkupno(k)*100)).toFixed(1):0;
+              const o = getKreditOtplacenoDisplay(k);
+            const pp = getKreditPctOtplaceno(k).toFixed(1);
             return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
               + '<span style="font-size:13px;font-weight:500">'+k.naziv+'</span>'
               + '<div style="text-align:right">'
@@ -3454,6 +3478,28 @@ function saveKrediti(arr) {
   scheduleAutoPush();
 }
 
+function getKreditNabavaShow() {
+  return localStorage.getItem('kredit_nabava_show') === '1';
+}
+function toggleKreditNabavaShow() {
+  localStorage.setItem('kredit_nabava_show', getKreditNabavaShow() ? '0' : '1');
+  renderDash();
+}
+function getKreditNabavaPocetni() {
+  return parseFloat(localStorage.getItem('kredit_nabava_pocetni')||'0')||0;
+}
+function setKreditNabavaPocetni(val) {
+  localStorage.setItem('kredit_nabava_pocetni', String(parseFloat(val)||0));
+  scheduleAutoPush();
+}
+function getKreditNabavaPotrosen() {
+  const data = loadNekretnine();
+  return Object.values(data).reduce((s,n)=>s+((n.nabava||[]).reduce((ss,i)=>ss+i.iznos,0)),0);
+}
+function getKreditNabavaPreostalo() {
+  return getKreditNabavaPocetni() - getKreditNabavaPotrosen();
+}
+
 function getKreditById(id) {
   return loadKrediti().find(k=>k.id===id)||null;
 }
@@ -3482,9 +3528,30 @@ function getKreditPreostaloById(kredit) {
   const ukupno = getKreditUkupno(kredit);
   const rucno  = kredit.rucniPreostali != null ? kredit.rucniPreostali : null;
   if(rucno !== null) {
-    return rucno - getKreditOtplaceno(kredit);
+    // Rucni = starting point, otplaćeno after that point tracked via subcat
+    // But we don't know when rucni was set, so we track ALL subcat payments
+    // and assume rucni already accounts for past payments
+    // Preostalo = rucno (no further deduction since rucno IS the current state)
+    // If user wants deduction after rucni, they update rucni manually
+    return rucno;
   }
   return ukupno - getKreditOtplaceno(kredit);
+}
+
+function getKreditOtplacenoDisplay(kredit) {
+  // What to show as "otplaćeno"
+  const rucno = kredit.rucniPreostali != null ? kredit.rucniPreostali : null;
+  if(rucno !== null) {
+    return getKreditUkupno(kredit) - rucno;
+  }
+  return getKreditOtplaceno(kredit);
+}
+
+function getKreditPctOtplaceno(kredit) {
+  const ukupno = getKreditUkupno(kredit);
+  if(!ukupno) return 0;
+  const otpl = getKreditOtplacenoDisplay(kredit);
+  return Math.min(100, (otpl / ukupno * 100));
 }
 
 function addKredit(naziv, pocetni, catKey, subKey, kamata) {
@@ -3539,9 +3606,9 @@ function renderKreditSettings() {
   const arr = loadKrediti();
 
   el.innerHTML = arr.map(k => {
-    const otplaceno = getKreditOtplaceno(k);
+    const otplaceno = getKreditOtplacenoDisplay(k);
     const preostalo = getKreditPreostaloById(k);
-    const pct = k.pocetni > 0 ? Math.min(100,(otplaceno/k.pocetni*100)).toFixed(1) : 0;
+    const pct = getKreditPctOtplaceno(k).toFixed(1);
     return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:14px;margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="font-size:14px;font-weight:600">${k.naziv}</div>
@@ -3715,7 +3782,7 @@ function setSyncStatus(state, msg) {
 
 function collectLocalData() {
   const data = {};
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','krediti_v1'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','krediti_v1','kredit_nabava_pocetni','kredit_nabava_show'];
   for(let i=0;i<localStorage.length;i++) {
     const k = localStorage.key(i);
     if(pfx.some(p=>k.startsWith(p))) data[k] = localStorage.getItem(k);
@@ -3724,7 +3791,7 @@ function collectLocalData() {
 }
 
 function applyCloudData(data) {
-  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','krediti_v1'];
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','krediti_v1','kredit_nabava_pocetni','kredit_nabava_show'];
   Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
     .forEach(k=>localStorage.removeItem(k));
   Object.entries(data).forEach(([k,v])=>{ if(k!=='_updated') localStorage.setItem(k,v); });
