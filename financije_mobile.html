@@ -371,7 +371,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.9.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.0.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -416,7 +416,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
     </select>
   </div>
 </div>
-<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v6.9.0</span></div>
+<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v7.0.0</span></div>
 
 </header>
 
@@ -2137,17 +2137,17 @@ function renderDash(){
             const p = getKreditPreostaloById(k);
               const o = getKreditOtplacenoDisplay(k);
             const pp = getKreditPctOtplaceno(k).toFixed(1);
-            return '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
-              + '<span style="font-size:13px;font-weight:500">'+k.naziv+'</span>'
-              + '<div style="text-align:right">'
-              + '<div style="font-size:16px;font-weight:700;color:'+(p>=0?'var(--amber)':'var(--red)')+'">'+fmtFull(Math.max(0,p))+'</div>'
-              + '<div style="font-size:10px;color:var(--muted)">Otplaćeno: '+fmtFull(o)+'</div></div></div>'
-              + '<div style="height:3px;background:var(--border);border-radius:2px;margin-bottom:12px;overflow:hidden">'
-              + '<div style="height:100%;width:'+pp+'%;background:var(--green);border-radius:2px"></div></div>';
+            return '<div style="margin-bottom:16px">'
+              + '<div style="font-size:13px;font-weight:500;margin-bottom:4px">'+k.naziv+'</div>'
+              + '<div style="font-size:22px;font-weight:700;color:'+(p>=0?'var(--amber)':'var(--red)')+'">'+fmtFull(Math.max(0,p))+'</div>'
+              + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Otplaćeno: '+fmtFull(o)+'</div>'
+              + '<div style="height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden">'
+              + '<div style="height:100%;width:'+pp+'%;background:var(--green);border-radius:2px"></div></div>'
+              + '</div>';
           }).join('')
-        + '<div style="border-top:1px solid var(--border);padding-top:8px;display:flex;justify-content:space-between">'
-        + '<span style="font-size:11px;color:var(--muted)">Ukupno preostalo</span>'
-        + '<span style="font-size:14px;font-weight:700;color:var(--amber)">'+fmtFull(totalPreostalo)+'</span></div></div>';
+        + '<div style="border-top:1px solid var(--border);padding-top:10px">'
+        + '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">Ukupno preostalo</div>'
+        + '<div style="font-size:18px;font-weight:700;color:var(--amber)">'+fmtFull(totalPreostalo)+'</div></div></div>';
     })()}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px">
       <div class="mc"><div class="mc-l">Planirani prihod</div><div class="mc-v pos">${fmtFull(planPrihod)}</div></div>
