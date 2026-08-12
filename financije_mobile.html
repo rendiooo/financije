@@ -371,7 +371,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.2.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v6.3.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -416,7 +416,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
     </select>
   </div>
 </div>
-<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v6.2.0</span></div>
+<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v6.3.0</span></div>
 
 </header>
 
@@ -3289,6 +3289,47 @@ function renderNekretPage(key) {
       <div style="height:200px"><canvas id="nekretChart_${key.replace(/[^a-z0-9]/gi,'_')}"></canvas></div>
     </div>
 
+
+    <!-- Nabava tablica -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="ct" style="margin-bottom:0">🛒 Troškovi nabave / kredita</div>
+        <div style="font-size:13px;font-weight:700;color:var(--red)" id="nab-total">—</div>
+      </div>
+
+      <!-- Add row -->
+      <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;margin-bottom:14px;align-items:end">
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Opis</div>
+          <input type="text" id="nab-opis" placeholder="npr. Kauč, Hladnjak..." style="width:100%">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Datum</div>
+          <input type="date" id="nab-datum" style="width:140px">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Iznos (€)</div>
+          <input type="number" id="nab-iznos" placeholder="0.00" min="0" step="0.01" style="width:110px;text-align:right">
+        </div>
+        <button class="crud-add-btn" style="margin-bottom:0;white-space:nowrap" id="nab-add-btn">+ Dodaj</button>
+      </div>
+
+      <!-- Table -->
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="text-align:left;padding:6px 10px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Opis</th>
+              <th style="text-align:left;padding:6px 10px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Datum</th>
+              <th style="text-align:right;padding:6px 10px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Iznos</th>
+              <th style="width:32px"></th>
+            </tr>
+          </thead>
+          <tbody id="nab-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Godišnja tablica troškova -->
     <div class="card" style="margin-bottom:14px">
       <div class="ct" style="margin-bottom:10px">Troškovi — ${nekretYear}.</div>
@@ -3303,6 +3344,13 @@ function renderNekretPage(key) {
         </table>
       </div>
     </div>`;
+
+  // Wire up add button after render
+  setTimeout(() => {
+    const addBtn = document.getElementById('nab-add-btn');
+    if(addBtn) addBtn.onclick = function(){ addNabavaItem(key); };
+    renderNabavaTable(key);
+  }, 50);
 
   setTimeout(() => {
     const ctx = document.getElementById('nekretChart_'+key.replace(/[^a-z0-9]/gi,'_'));
@@ -3378,6 +3426,64 @@ function syncRezijeToDom(nekretKey) {
     }
   });
   saveNekretnine(data);
+}
+
+
+// ── NABAVA (kredit troškovi) ──────────────────
+function getNabavaItems(nekretKey) {
+  const d = getNekret(nekretKey);
+  return (d && d.nabava) ? d.nabava : [];
+}
+
+function saveNabavaItems(nekretKey, items) {
+  const data = loadNekretnine();
+  if(!data[nekretKey]) return;
+  data[nekretKey].nabava = items;
+  saveNekretnine(data);
+}
+
+function addNabavaItem(nekretKey) {
+  const opis  = document.getElementById('nab-opis').value.trim();
+  const datum = document.getElementById('nab-datum').value;
+  const iznos = parseFloat(document.getElementById('nab-iznos').value)||0;
+  if(!opis || !iznos) { alert('Upišite opis i iznos.'); return; }
+  const items = getNabavaItems(nekretKey);
+  items.unshift({ id: Date.now(), opis, datum: datum||new Date().toISOString().slice(0,10), iznos });
+  saveNabavaItems(nekretKey, items);
+  renderNabavaTable(nekretKey);
+  document.getElementById('nab-opis').value  = '';
+  document.getElementById('nab-iznos').value = '';
+  document.getElementById('nab-datum').value = '';
+}
+
+function delNabavaItem(nekretKey, id) {
+  const items = getNabavaItems(nekretKey).filter(x => x.id !== id);
+  saveNabavaItems(nekretKey, items);
+  renderNabavaTable(nekretKey);
+}
+
+function renderNabavaTable(nekretKey) {
+  const el = document.getElementById('nab-table-body');
+  if(!el) return;
+  const items = getNabavaItems(nekretKey);
+  const total = items.reduce((s,x)=>s+x.iznos, 0);
+
+  document.getElementById('nab-total').textContent = total > 0 ? fmtFull(total) : '—';
+
+  if(!items.length) {
+    el.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px;font-size:13px">Nema unesenih stavki</td></tr>';
+    return;
+  }
+
+  el.innerHTML = items.map(item => `
+    <tr style="border-bottom:.5px solid var(--border)">
+      <td style="padding:9px 10px;font-size:13px">${item.opis}</td>
+      <td style="padding:9px 10px;font-size:12px;color:var(--muted);white-space:nowrap">${item.datum}</td>
+      <td style="padding:9px 10px;font-size:13px;font-weight:600;text-align:right;white-space:nowrap;color:var(--red)">${fmtFull(item.iznos)}</td>
+      <td style="padding:9px 6px;text-align:center">
+        <button class="db" onclick="if(confirm('Obrisati stavku \'${item.opis.replace(/'/g,"\\'")}\'?')){delNabavaItem('${nekretKey}',${item.id})}">×</button>
+      </td>
+    </tr>`).join('');
 }
 
 // ══════════════════════════════════════════════
