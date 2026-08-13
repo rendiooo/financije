@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.7.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.9.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v7.7.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v7.9.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -2112,21 +2112,21 @@ function renderDash(){
           + '</div>';
       }).join('');
 
-      // SVG donut
+      // SVG donut — 90px
       function kreditDonut(preostalo, ukupno, colMain, colSecond) {
-        const R = 52, cx = 70, cy = 70;
+        const R = 34, cx = 45, cy = 45;
         const circ = 2 * Math.PI * R;
         const pctPre = ukupno > 0 ? Math.min(1, preostalo / ukupno) : 1;
         const dashPre  = (pctPre * circ).toFixed(2);
         const dashOtpl = ((1-pctPre) * circ).toFixed(2);
-        return '<svg width="140" height="140" viewBox="0 0 140 140">'
-          + '<circle cx="70" cy="70" r="52" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="16"/>'
-          + '<circle cx="70" cy="70" r="52" fill="none" stroke="'+colSecond+'" stroke-width="16"'
+        return '<svg width="90" height="90" viewBox="0 0 90 90">'
+          + '<circle cx="45" cy="45" r="34" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="11"/>'
+          + '<circle cx="45" cy="45" r="34" fill="none" stroke="'+colSecond+'" stroke-width="11"'
           + ' stroke-dasharray="'+dashOtpl+' '+dashPre+'" stroke-dashoffset="'+(-(pctPre*circ)).toFixed(2)+'"'
-          + ' transform="rotate(-90 70 70)" stroke-linecap="butt"/>'
-          + '<circle cx="70" cy="70" r="52" fill="none" stroke="'+colMain+'" stroke-width="16"'
+          + ' transform="rotate(-90 45 45)"/>'
+          + '<circle cx="45" cy="45" r="34" fill="none" stroke="'+colMain+'" stroke-width="11"'
           + ' stroke-dasharray="'+dashPre+' '+dashOtpl+'"'
-          + ' transform="rotate(-90 70 70)" stroke-linecap="butt"/>'
+          + ' transform="rotate(-90 45 45)"/>'
           + '</svg>';
       }
 
@@ -2146,49 +2146,69 @@ function renderDash(){
       const allItems = [...nabavaItems, ...otplataItems];
       if(!allItems.length) return '';
 
-      if(!allItems.length) return '';
-      const n = allItems.length;
-
       return '<div class="card" style="margin-bottom:14px">'
-        + '<div style="display:flex;gap:8px">'
+        + '<div style="display:flex;gap:10px">'
         + allItems.map(item=>{
             const preStr = item.preostalo.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
             const otplStr = item.otplaceno.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
             const preLabel = item.label==='za nabavu'?'Preostalo za potrošiti':'Preostalo za otplatiti';
             const otplLabel = item.label==='za nabavu'?'Potrošeno':'Otplaćeno';
-            // Size adapts: 1=full, 2=half, 3=third, 4=quarter
-            const sz = Math.floor(Math.min(180, Math.max(100, 400/n)));
-            return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0">'
-              + '<div style="font-size:12px;font-weight:700;color:var(--text);text-align:center">'+item.naziv+'</div>'
-              + '<div style="position:relative;width:'+sz+'px;height:'+sz+'px">'
+            return '<div style="flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px">'
+              + '<div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.naziv+'</div>'
+              + '<div style="display:flex;align-items:center;gap:12px">'
+              + '<div style="position:relative;width:90px;height:90px;flex-shrink:0">'
               + kreditDonut(item.preostalo, item.ukupno, item.colMain, item.colSecond)
-              + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">'
-              + '<div style="font-size:'+Math.max(11,Math.floor(sz/10))+'px;font-weight:700;color:'+item.colMain+';line-height:1.2;padding:0 4px;word-break:break-all">'+preStr+'</div>'
-              + '<div style="font-size:'+Math.max(9,Math.floor(sz/14))+'px;color:var(--muted);margin-top:2px">'+otplStr+'</div>'
-              + '</div></div>'
-              + '<div style="display:flex;flex-direction:column;gap:4px;width:100%;padding:0 4px">'
-              + '<div style="display:flex;align-items:center;gap:5px">'
-              + '<div style="width:10px;height:10px;border-radius:2px;background:'+item.colMain+';flex-shrink:0"></div>'
-              + '<div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+preLabel+'</div></div>'
-              + '<div style="display:flex;align-items:center;gap:5px">'
-              + '<div style="width:10px;height:10px;border-radius:2px;background:'+item.colSecond+';flex-shrink:0"></div>'
-              + '<div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+otplLabel+'</div></div>'
-              + '</div></div>';
+              + '</div>'
+              + '<div style="display:flex;flex-direction:column;gap:10px;flex:1;min-width:0">'
+              + '<div style="display:flex;align-items:center;gap:6px">'
+              + '<div style="width:9px;height:9px;border-radius:2px;background:'+item.colMain+';flex-shrink:0"></div>'
+              + '<div><div style="font-size:9px;color:var(--muted)">'+preLabel+'</div>'
+              + '<div style="font-size:14px;font-weight:700;color:'+item.colMain+'">'+preStr+' €</div></div></div>'
+              + '<div style="display:flex;align-items:center;gap:6px">'
+              + '<div style="width:9px;height:9px;border-radius:2px;background:'+item.colSecond+';flex-shrink:0"></div>'
+              + '<div><div style="font-size:9px;color:var(--muted)">'+otplLabel+'</div>'
+              + '<div style="font-size:14px;font-weight:700;color:'+item.colSecond+'">'+otplStr+' €</div></div></div>'
+              + '</div></div></div>';
           }).join('')
         + '</div></div>';
     })()}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px">
-      <div class="mc"><div class="mc-l">Planirani prihod</div><div class="mc-v pos">${fmtFull(planPrihod)}</div></div>
-      <div class="mc"><div class="mc-l">Stvarni prihod</div><div class="mc-v pos">${fmtFull(actPrihod)}</div></div>
-      <div class="mc"><div class="mc-l">Planirani rashod</div><div class="mc-v neg">${fmtFull(planRashod)}</div></div>
-      <div class="mc"><div class="mc-l">Stvarni rashod</div><div class="mc-v neg">${fmtFull(actRashod)}</div></div>
-      <div class="mc"><div class="mc-l">Planirani zajednički troškovi</div><div class="mc-v neg">${fmtFull(zajTroskoviPlan)}</div></div>
-      <div class="mc"><div class="mc-l">Stvarni zajednički troškovi</div><div class="mc-v neg">${fmtFull(zajTroskoviAct)}</div></div>
-      <div class="mc"><div class="mc-l">Planirano stanje zajedničkog računa</div><div class="mc-v ${planStanje>=0?'pos':'neg'}">${planStanje>=0?'':'−'}${fmtFull(Math.abs(planStanje))}</div></div>
-      <div class="mc"><div class="mc-l">Stvarno stanje zajedničkog računa</div><div class="mc-v ${actStanje>=0?'pos':'neg'}">${actStanje>=0?'':'−'}${fmtFull(Math.abs(actStanje))}</div></div>
-
-
-    </div>
+    ${(()=>{
+      function metricDonut(plan, stvarno, colPlan, colStvarno) {
+        const R=34, circ=2*Math.PI*R;
+        const maxV=Math.max(plan,stvarno,1);
+        const dPlan=(plan/maxV*circ).toFixed(2), remPlan=(circ-plan/maxV*circ).toFixed(2);
+        const dStv=(stvarno/maxV*circ).toFixed(2), remStv=(circ-stvarno/maxV*circ).toFixed(2);
+        return '<svg width="90" height="90" viewBox="0 0 90 90">'
+          +'<circle cx="45" cy="45" r="34" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="11"/>'
+          +'<circle cx="45" cy="45" r="34" fill="none" stroke="'+colStvarno+'" stroke-width="11" stroke-dasharray="'+dStv+' '+remStv+'" transform="rotate(-90 45 45)"/>'
+          +'<circle cx="45" cy="45" r="34" fill="none" stroke="'+colPlan+'" stroke-width="11" stroke-dasharray="'+dPlan+' '+remPlan+'" transform="rotate(-90 45 45)"/>'
+          +'</svg>';
+      }
+      function metricCard(icon, label, plan, stvarno, colPlan, colStvarno) {
+        return '<div style="flex:1;min-width:0;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:12px">'
+          +'<div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">'+icon+' '+label+'</div>'
+          +'<div style="display:flex;align-items:center;gap:12px">'
+          +'<div style="flex-shrink:0">'+metricDonut(plan,stvarno,colPlan,colStvarno)+'</div>'
+          +'<div style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:0">'
+          +'<div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:2px;background:'+colPlan+';flex-shrink:0"></div>'
+          +'<div><div style="font-size:9px;color:var(--muted)">Planirano</div>'
+          +'<div style="font-size:14px;font-weight:700;color:'+colPlan+'">'+fmtFull(plan)+' \u20ac</div></div></div>'
+          +'<div style="display:flex;align-items:center;gap:6px"><div style="width:9px;height:9px;border-radius:2px;background:'+colStvarno+';flex-shrink:0"></div>'
+          +'<div><div style="font-size:9px;color:var(--muted)">Stvarno</div>'
+          +'<div style="font-size:14px;font-weight:700;color:'+colStvarno+'">'+fmtFull(stvarno)+' \u20ac</div></div></div>'
+          +'</div></div></div>';
+      }
+      const actStvarnoColor = actStanje>=0?'#7DC8FF':'#FF3B3B';
+      return '<div style="display:flex;gap:10px;margin-bottom:10px">'
+        +metricCard('💰','Prihod',planPrihod,actPrihod,'#39FF8F','rgba(57,255,143,.6)')
+        +metricCard('📤','Rashod',planRashod,actRashod,'#39FF8F',actRashod>planRashod?'#FF3B3B':'rgba(57,255,143,.5)')
+        +metricCard('🏛','ZR Troškovi',zajTroskoviPlan,zajTroskoviAct,'#39FF8F',zajTroskoviAct>zajTroskoviPlan?'#FF3B3B':'rgba(57,255,143,.5)')
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px">'
+        +'<div class="mc"><div class="mc-l">Planirano stanje ZR</div><div class="mc-v '+(planStanje>=0?'pos':'neg')+'">'+(planStanje>=0?'':'−')+fmtFull(Math.abs(planStanje))+'</div></div>'
+        +'<div class="mc"><div class="mc-l">Stvarno stanje ZR</div><div class="mc-v '+(actStanje>=0?'pos':'neg')+'">'+(actStanje>=0?'':'−')+fmtFull(Math.abs(actStanje))+'</div></div>'
+        +'</div>';
+    })()}
     <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Investicije</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px">
       ${Object.entries(getActivePortfolios()).map(([key,p])=>{
