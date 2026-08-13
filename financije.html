@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.2.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.3.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v7.2.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v7.3.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -2150,15 +2150,15 @@ function renderDash(){
         + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:16px">🏗️ Krediti</div>'
         + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px;max-width:100%">'
         + allItems.map(item=>{
-            return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px">'
-              + '<div style="position:relative;width:130px;height:130px">'
+            const preStr = item.preostalo.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
+            const otplStr = item.otplaceno.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
+            return '<div style="display:flex;flex-direction:column;align-items:center">'
+              + '<div style="position:relative;width:140px;height:140px">'
               + kreditDonut(item.preostalo, item.ukupno, item.colMain, item.colSecond)
-              + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px">'
-              + '<div style="font-size:13px;font-weight:700;color:'+item.colMain+';line-height:1.2">'+fmtFull(item.preostalo)+'</div>'
-              + '<div style="font-size:9px;color:var(--muted);margin-top:1px">'+item.label+'</div>'
+              + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px">'
+              + '<div style="font-size:15px;font-weight:700;color:'+item.colMain+';line-height:1.1">'+preStr+'</div>'
+              + '<div style="font-size:9px;color:var(--muted);margin-top:3px">'+otplStr+'</div>'
               + '</div></div>'
-              + '<div style="font-size:11px;font-weight:600;text-align:center;color:var(--text)">'+item.naziv+'</div>'
-              + '<div style="font-size:10px;color:var(--muted)">Iskor.: '+fmtFull(item.otplaceno)+'</div>'
               + '</div>';
           }).join('')
         + '</div></div>';
@@ -3599,6 +3599,14 @@ function addKredit(naziv, pocetni, catKey, subKey, kamata) {
   return id;
 }
 
+function promptRenameKredit(id, currentName) {
+  const newName = prompt('Novi naziv kredita:', currentName);
+  if(!newName || !newName.trim()) return;
+  const arr = loadKrediti();
+  const k = arr.find(x=>x.id===id);
+  if(k) { k.naziv = newName.trim(); saveKrediti(arr); renderKreditSettings(); renderDash(); }
+}
+
 function removeKredit(id) {
   saveKrediti(loadKrediti().filter(k=>k.id!==id));
 }
@@ -3653,6 +3661,7 @@ function renderKreditSettings() {
             Prikaži na dashboardu
           </label>
         </div>
+        <button class="crud-btn" data-kid="${k.id}" data-kname="${k.naziv}" onclick="promptRenameKredit(this.dataset.kid,this.dataset.kname)" title="Preimenuj">✏️</button>
         <button class="crud-btn crud-del" onclick="if(confirm('Obrisati kredit \'${k.naziv}\'?')){removeKredit('${k.id}');renderKreditSettings();renderDash()}">🗑</button>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
