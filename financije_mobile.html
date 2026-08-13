@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.4.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.6.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v7.4.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v7.6.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -2146,23 +2146,31 @@ function renderDash(){
       const allItems = [...nabavaItems, ...otplataItems];
       if(!allItems.length) return '';
 
-      return '<div class="card" style="margin-bottom:16px">'
-        + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:16px">🏗️ Krediti</div>'
-        + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px;max-width:100%">'
-        + allItems.map(item=>{
-            const preStr = item.preostalo.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
-            const otplStr = item.otplaceno.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
-            return '<div style="display:flex;flex-direction:column;align-items:center">'
-              + '<div style="position:relative;width:140px;height:140px">'
-              + kreditDonut(item.preostalo, item.ukupno, item.colMain, item.colSecond)
-              + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px">'
-              + '<div style="font-size:15px;font-weight:700;color:'+item.colMain+';line-height:1.1">'+preStr+'</div>'
-              + '<div style="font-size:9px;color:var(--muted);margin-top:3px">'+otplStr+'</div>'
-              + '</div></div>'
-              + '<div style="font-size:12px;font-weight:600;text-align:center;color:var(--text);margin-top:6px;max-width:140px">'+item.naziv+'</div>'
-              + '</div>';
-          }).join('')
-        + '</div></div>';
+      return allItems.map(item=>{
+        const preStr = item.preostalo.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const otplStr = item.otplaceno.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const preLabel = item.label === 'za nabavu' ? 'Preostalo za potrošiti' : 'Preostalo za otplatiti';
+        const otplLabel = item.label === 'za nabavu' ? 'Potrošeno' : 'Otplaćeno';
+        return '<div class="card" style="margin-bottom:14px">'
+          + '<div style="font-size:13px;font-weight:700;margin-bottom:14px">'+item.naziv+'</div>'
+          + '<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">'
+          + '<div style="position:relative;width:160px;height:160px;flex-shrink:0">'
+          + kreditDonut(item.preostalo, item.ukupno, item.colMain, item.colSecond)
+          + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px">'
+          + '<div style="font-size:16px;font-weight:700;color:'+item.colMain+';line-height:1.1">'+preStr+'</div>'
+          + '<div style="font-size:10px;color:var(--muted);margin-top:4px">'+otplStr+'</div>'
+          + '</div></div>'
+          + '<div style="display:flex;flex-direction:column;gap:16px">'
+          + '<div style="display:flex;align-items:center;gap:10px">'
+          + '<div style="width:14px;height:14px;border-radius:3px;background:'+item.colMain+';flex-shrink:0"></div>'
+          + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">'+preLabel+'</div>'
+          + '<div style="font-size:20px;font-weight:700;color:'+item.colMain+'">'+preStr+' €</div></div></div>'
+          + '<div style="display:flex;align-items:center;gap:10px">'
+          + '<div style="width:14px;height:14px;border-radius:3px;background:'+item.colSecond+';flex-shrink:0"></div>'
+          + '<div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">'+otplLabel+'</div>'
+          + '<div style="font-size:20px;font-weight:700;color:'+item.colSecond+'">'+otplStr+' €</div></div></div>'
+          + '</div></div></div>';
+      }).join('');
     })()}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px">
       <div class="mc"><div class="mc-l">Planirani prihod</div><div class="mc-v pos">${fmtFull(planPrihod)}</div></div>
@@ -2173,8 +2181,7 @@ function renderDash(){
       <div class="mc"><div class="mc-l">Stvarni zajednički troškovi</div><div class="mc-v neg">${fmtFull(zajTroskoviAct)}</div></div>
       <div class="mc"><div class="mc-l">Planirano stanje zajedničkog računa</div><div class="mc-v ${planStanje>=0?'pos':'neg'}">${planStanje>=0?'':'−'}${fmtFull(Math.abs(planStanje))}</div></div>
       <div class="mc"><div class="mc-l">Stvarno stanje zajedničkog računa</div><div class="mc-v ${actStanje>=0?'pos':'neg'}">${actStanje>=0?'':'−'}${fmtFull(Math.abs(actStanje))}</div></div>
-      <div class="mc"><div class="mc-l">Planirana bilanca</div><div class="mc-v ${planBal>=0?'pos':'neg'}">${planBal>=0?'+':'−'}${fmtFull(Math.abs(planBal))}</div></div>
-      <div class="mc"><div class="mc-l">Stvarna bilanca</div><div class="mc-v ${actBal>=0?'pos':'neg'}">${actBal>=0?'+':'−'}${fmtFull(Math.abs(actBal))}</div></div>
+
 
     </div>
     <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Investicije</div>
