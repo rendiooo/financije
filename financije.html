@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v8.1.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v8.2.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v8.1.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v8.2.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -2114,12 +2114,12 @@ function renderDash(){
 
       // SVG donut — 90px
       function kreditDonut(preostalo, ukupno, colMain, colSecond) {
-        const R = 46, cx = 60, cy = 60; // 120px viewbox
+        const R = 48, cx = 60, cy = 60;
         const circ = 2 * Math.PI * R;
         const pctPre = ukupno > 0 ? Math.min(1, preostalo / ukupno) : 1;
         const dashPre  = (pctPre * circ).toFixed(2);
         const dashOtpl = ((1-pctPre) * circ).toFixed(2);
-        return '<svg width="160" height="160" viewBox="0 0 120 120">'
+        return '<svg width="120" height="120" viewBox="0 0 120 120">'
           + '<circle cx="60" cy="60" r="46" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="13"/>'
           + '<circle cx="60" cy="60" r="46" fill="none" stroke="'+colSecond+'" stroke-width="13"'
           + ' stroke-dasharray="'+dashOtpl+' '+dashPre+'" stroke-dashoffset="'+(-(pctPre*circ)).toFixed(2)+'"'
@@ -2153,21 +2153,20 @@ function renderDash(){
             const otplStr = item.otplaceno.toLocaleString('hr-HR',{minimumFractionDigits:2,maximumFractionDigits:2});
             const preLabel = item.label==='za nabavu'?'Preostalo za potrošiti':'Preostalo za otplatiti';
             const otplLabel = item.label==='za nabavu'?'Potrošeno':'Otplaćeno';
-            return '<div style="flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:16px;display:flex;flex-direction:column;gap:14px">'
-              + '<div style="font-size:12px;font-weight:700;color:var(--text)">'+item.naziv+'</div>'
-              + '<div style="display:flex;justify-content:center">'
-              + kreditDonut(item.preostalo, item.ukupno, item.colMain, item.colSecond)
-              + '</div>'
-              + '<div style="display:flex;flex-direction:column;gap:8px">'
+            return '<div style="flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:16px">'
+              + '<div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+item.naziv+'</div>'
+              + '<div style="display:flex;align-items:center;gap:14px">'
+              + '<div style="flex-shrink:0">'+kreditDonut(item.preostalo,item.ukupno,item.colMain,item.colSecond)+'</div>'
+              + '<div style="display:flex;flex-direction:column;gap:12px;flex:1;min-width:0">'
               + '<div style="display:flex;align-items:center;gap:8px">'
               + '<div style="width:10px;height:10px;border-radius:2px;background:'+item.colMain+';flex-shrink:0"></div>'
-              + '<div><div style="font-size:9px;color:var(--muted)">'+preLabel+'</div>'
-              + '<div style="font-size:15px;font-weight:700;color:'+item.colMain+'">'+preStr+' €</div></div></div>'
+              + '<div><div style="font-size:10px;color:var(--muted);white-space:nowrap">'+preLabel+'</div>'
+              + '<div style="font-size:17px;font-weight:700;color:'+item.colMain+';white-space:nowrap">'+preStr+' €</div></div></div>'
               + '<div style="display:flex;align-items:center;gap:8px">'
               + '<div style="width:10px;height:10px;border-radius:2px;background:'+item.colSecond+';flex-shrink:0"></div>'
-              + '<div><div style="font-size:9px;color:var(--muted)">'+otplLabel+'</div>'
-              + '<div style="font-size:15px;font-weight:700;color:'+item.colSecond+'">'+otplStr+' €</div></div></div>'
-              + '</div></div>';
+              + '<div><div style="font-size:10px;color:var(--muted);white-space:nowrap">'+otplLabel+'</div>'
+              + '<div style="font-size:17px;font-weight:700;color:'+item.colSecond+';white-space:nowrap">'+otplStr+' €</div></div></div>'
+              + '</div></div></div>';
           }).join('')
         + '</div></div>';
     })()}
