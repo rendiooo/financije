@@ -5,10 +5,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Financije">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Moje Financije</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -29,73 +26,37 @@
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:15px;color-scheme:dark}
 .layout{display:flex;min-height:100vh}
 
-/* ── MOBILE LAYOUT ── */
-*,*::before,*::after{box-sizing:border-box}
-img,canvas,svg{max-width:100%}
-html,body{height:100%;overflow:hidden;max-width:100vw}
-.layout{display:flex;flex-direction:column;height:100%;overflow:hidden}
-
-/* Top header bar */
-.sb{background:var(--accent);color:#fff;position:fixed;top:0;left:0;right:0;z-index:200;
-    height:56px;display:flex;align-items:center;padding:0 16px;
-    padding-top:env(safe-area-inset-top);z-index:50}
+/* ── SIDEBAR ── */
+.sb{width:var(--sw);background:#000;color:#fff;display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto}
 .sb-period{padding:14px 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);position:sticky;top:0;background:#000;z-index:10}
 .sb-period-label{font-size:9px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
 .sb-period select option{background:#111;color:#fff}
-.sb-logo{display:flex;align-items:center;gap:10px;flex:1}
-.sb-logo h1{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;color:#fff}
-.sb-logo p{display:none}
-.nav{display:none}
-.sb-foot{display:none}
-
-/* Menu button */
-.menu-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.8);padding:8px;margin-right:4px;display:flex;align-items:center;justify-content:center}
-.menu-btn svg{width:20px;height:20px}
-.period-bar-header{display:flex;align-items:center;gap:6px;margin-left:auto}
-.period-bar-header select{padding:4px 8px;font-size:12px;font-weight:500;border:1px solid rgba(255,255,255,.25);border-radius:6px;background:rgba(255,255,255,.12);color:#fff;-webkit-appearance:none;min-width:70px;text-align:center}
-.period-bar-header select option{background:var(--accent);color:#fff}
-
-/* Slide-out drawer */
-.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
-.drawer-overlay.open{opacity:1;pointer-events:all}
-.drawer{position:fixed;top:0;left:0;bottom:0;width:80vw;max-width:280px;background:#000;z-index:301;
-        transform:translateX(-100%);transition:transform .28s ease;overflow-y:auto;
-        padding-top:env(safe-area-inset-top)}
-.drawer.open{transform:translateX(0)}
-.drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
-.drawer-hdr h2{font-family:'DM Serif Display',serif;font-size:18px;font-weight:400;color:#fff}
-.drawer-close{background:none;border:none;color:rgba(255,255,255,.6);font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
-.drawer-nav{padding:10px 8px}
-
-/* Drawer nav items */
-.ni{display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.6);font-size:14px;transition:all .15s;margin-bottom:1px;user-select:none}
+.sb-logo{padding:20px 16px 14px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo h1{font-family:'DM Serif Display',serif;font-size:19px;font-weight:400;color:#fff}
+.sb-logo p{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px;letter-spacing:.8px;text-transform:uppercase}
+.nav{padding:12px 8px;flex:1}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.6);font-size:13.5px;transition:all .15s;margin-bottom:1px;user-select:none}
+.ni:hover{background:rgba(255,255,255,.08);color:#fff}
 .ni.active{background:rgba(125,200,255,.12);color:#7DC8FF;font-weight:500}
 .ni svg{width:15px;height:15px;flex-shrink:0;opacity:.7}.ni.active svg{opacity:1}
-.np-h{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.6);font-size:14px;transition:all .15s;user-select:none;margin-bottom:1px}
+.np-h{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.6);font-size:13.5px;transition:all .15s;user-select:none;margin-bottom:1px}
+.np-h:hover{background:rgba(255,255,255,.08);color:#fff}
 .np-h.open{color:#fff;background:rgba(255,255,255,.05)}
 .np-h .l{display:flex;align-items:center;gap:9px}
 .np-h svg.ic{width:15px;height:15px;opacity:.7}.np-h.open svg.ic{opacity:1}
 .chev{width:12px;height:12px;transition:transform .2s;opacity:.45;flex-shrink:0}
 .np-h.open .chev{transform:rotate(180deg);opacity:.75}
-.np-k{overflow:hidden;max-height:0;transition:max-height .3s ease}
-.np-k.open{max-height:600px}
-.nc{display:flex;align-items:center;gap:7px;padding:10px 12px 10px 30px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.5);font-size:13px;transition:all .15s;margin-bottom:1px;user-select:none}
+.np-k{overflow:hidden;max-height:0;transition:max-height .28s ease}
+.np-k.open{max-height:400px}
+.nc{display:flex;align-items:center;gap:7px;padding:7px 12px 7px 30px;border-radius:var(--rsm);cursor:pointer;color:rgba(255,255,255,.5);font-size:13px;transition:all .15s;margin-bottom:1px;user-select:none}
+.nc:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
 .nc.active{background:rgba(255,255,255,.13);color:#fff;font-weight:500}
 .nc-dot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;opacity:.6}
 .nc.active .nc-dot{opacity:1}
+.sb-foot{padding:14px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:10px;color:rgba(255,255,255,.22)}
 
 /* ── MAIN ── */
-.main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;max-width:100%;
-      padding:72px 16px 32px;
-      padding-top:calc(56px + env(safe-area-inset-top) + 16px);
-      padding-bottom:calc(16px + env(safe-area-inset-bottom))}
-.metrics{grid-template-columns:1fr 1fr}
-.card{padding:16px}
-.tbl-row-label{padding-left:20px}
-.tbl-head,.tbl-subtotal{padding:8px 12px}
-.tbl-row{grid-template-columns:1fr 120px}
-.tbl-head{grid-template-columns:1fr 120px}
-.tbl-subtotal{grid-template-columns:1fr 120px}
+.main{margin-left:var(--sw);flex:1;padding:32px clamp(24px,3vw,56px);width:100%;max-width:1600px}
 .page{display:none}.page.active{display:block;animation:fi .18s ease}
 @keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .ph{margin-bottom:22px}
@@ -112,7 +73,7 @@ html,body{height:100%;overflow:hidden;max-width:100vw}
 .pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--text)}
 .card{background:#161616;border:1px solid #222;border-radius:var(--radius);padding:16px 18px;margin-bottom:14px}
 .ct{font-size:14px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
-.g2{display:grid;grid-template-columns:1fr;gap:14px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .cw{position:relative;width:100%}
 .ig-p{font-size:12px;color:var(--green)}.ig-n{font-size:12px;color:var(--red)}
 .badge{display:inline-block;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--muted);vertical-align:middle}
@@ -135,7 +96,7 @@ input:focus,select:focus{border-color:#7DC8FF;background:var(--bg);color:var(--t
 input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus{-webkit-box-shadow:0 0 0 1000px var(--bg) inset;-webkit-text-fill-color:var(--text);caret-color:var(--text)}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rsm);font-family:inherit;font-size:14px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
 .btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
-.st-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:calc(100vw - 32px)}
+.st-wrap{width:100%;overflow-x:auto}
 .st{width:100%;border-collapse:collapse;font-size:13px}
 .st th{text-align:left;font-weight:500;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:0 0 8px;border-bottom:1px solid var(--border)}
 .st td{padding:9px 0;border-bottom:1px solid var(--border);vertical-align:middle}
@@ -212,18 +173,6 @@ input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus
 .set-cat-icon{font-size:16px}
 .set-row{display:flex;align-items:center;gap:10px;padding:8px 0 8px 4px;border-bottom:0.5px solid var(--border)}
 .set-row:last-child{border-bottom:none}
-
-/* Mobile stacked settings row */
-.set-row-block{padding:14px 0;border-bottom:0.5px solid var(--border)}
-.set-row-block:last-child{border-bottom:none}
-.set-row-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.set-defaults{display:flex;gap:8px;margin-bottom:10px}
-.set-def-group{flex:1;display:flex;flex-direction:column;gap:4px}
-.set-def-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
-.set-def-inp{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--rsm);font-family:inherit;font-size:14px;background:var(--bg);color:var(--text);text-align:right;outline:none;-webkit-appearance:none;box-sizing:border-box}
-.set-def-inp:focus{border-color:var(--accent2);background:#fff}
-.set-radios{display:flex;gap:6px;flex-wrap:wrap}
-.set-radios .set-radio-btn{flex:1;min-width:0;text-align:center;padding:8px 6px;font-size:12px}
 .set-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .set-row-label{font-size:14px;color:var(--text);flex:1;min-width:0}
 .set-radios{display:flex;gap:4px;flex-shrink:0}
@@ -275,14 +224,14 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 
 
 /* sync status */
-
+.sync-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px;color:var(--muted)}
 .sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#ccc}
 .sync-dot.ok{background:var(--green)}
 .sync-dot.err{background:var(--red)}
 .sync-dot.syncing{background:var(--amber);animation:pulse .8s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-._sync-btn-removed{margin-left:auto;padding:4px 10px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.sync-btn{margin-left:auto;padding:4px 10px;font-size:11px;font-weight:500;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
 .sync-btn:hover{background:var(--bg);color:var(--text)}
 
 
@@ -323,6 +272,21 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   .main{padding:36px clamp(32px,4vw,80px)}
 }
 
+/* Narrower windows — shrink sidebar, tighten spacing */
+@media (max-width:1100px){
+  :root{--sw:200px}
+  .main{padding:24px 20px}
+  .metrics{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+  .g2{gap:14px}
+}
+@media (max-width:900px){
+  :root{--sw:0px}
+  .sb{transform:translateX(-100%);transition:transform .25s;z-index:300}
+  .sb.open{transform:translateX(0)}
+  .main{margin-left:0;padding:20px 16px}
+  .g2{grid-template-columns:1fr}
+  .mobile-menu-btn{display:flex !important}
+}
 @media (max-width:600px){
   .main{padding:16px 12px}
   .metrics{grid-template-columns:1fr 1fr;gap:8px}
@@ -371,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.0.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v7.2.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -398,38 +362,27 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <div class="pin-forgot" onclick="pinForgot()">Zaboravili ste PIN?</div>
 </div>
 
+<button class="mobile-menu-btn" onclick="document.querySelector('.sb').classList.toggle('open')"
+  style="display:none;position:fixed;top:14px;left:14px;z-index:301;width:38px;height:38px;border-radius:8px;background:var(--accent);border:none;color:#fff;align-items:center;justify-content:center;cursor:pointer">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px">
+    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+</button>
 <div class="layout" id="app-layout" style="display:none">
 
-<!-- ════════════════ HEADER + DRAWER ════════════════ -->
-<header class="sb">
-  <button class="menu-btn" onclick="openDrawer()" aria-label="Izbornik">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
+<!-- ════════════════ SIDEBAR ════════════════ -->
+<aside class="sb">
   <div class="sb-period">
   <div class="sb-period-label">Period</div>
   <div style="display:flex;gap:6px">
-    <select id="global-year" onchange="globalSetYear(+this.value)" style="flex:1;padding:6px 8px;font-size:13px;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;cursor:pointer">
+    <select id="global-year" onchange="globalSetYear(+this.value)" style="flex:1;padding:5px 8px;font-size:12px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.06);color:#fff;cursor:pointer">
     </select>
-    <select id="global-month" onchange="globalSetMonth(this.value)" style="flex:1;padding:6px 8px;font-size:13px;border:1px solid rgba(255,255,255,.15);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;cursor:pointer">
+    <select id="global-month" onchange="globalSetMonth(this.value)" style="flex:1;padding:5px 8px;font-size:12px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.06);color:#fff;cursor:pointer">
     </select>
   </div>
 </div>
-<div class="sb-logo"><h1>Financije</h1><span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:6px">v7.0.0</span></div>
-
-</header>
-
-<!-- Drawer overlay -->
-<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
-
-<!-- Slide-out drawer -->
-<div class="drawer" id="drawer">
-  <div class="drawer-hdr">
-    <h2>Financije</h2>
-    <button class="drawer-close" onclick="closeDrawer()">×</button>
-  </div>
-  <nav class="drawer-nav" id="drawer-nav">
+<div class="sb-logo"><h1>Financije</h1><p>Osobni tracker</p></div>
+  <nav class="nav">
 
     <div class="ni active" id="nav-dashboard" onclick="goPage('dashboard',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -501,7 +454,9 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
         </svg>Postavke
       </div>
     </div>
-  </nav></div><!-- /drawer -->
+  </nav>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v7.2.0</span></span></div>
+</aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
 <main class="main">
@@ -547,6 +502,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <div id="page-cat" class="page">
     <div class="bc" id="cat-bc"></div>
     <div class="ph"><h2 id="cat-title"></h2><p id="cat-sub"></p></div>
+
     <div id="cat-body"></div>
   </div>
 
@@ -603,7 +559,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
     </div>
     <div class="card" style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:14px">🏗️ Praćenje kredita</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Svaki kredit možete vezati na podkategoriju u troškovima.</p>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Svaki kredit možete vezati na podkategoriju u troškovima — uplate se automatski oduzimaju od preostalog iznosa.</p>
 
       <div id="settings-krediti"></div>
     </div>
@@ -632,6 +588,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
@@ -866,12 +823,16 @@ function getKalkValue(subKey, ym) {
   const parts = subKey.split('__');
   if(parts.length < 2) return 0;
   const [cat, key] = parts;
+  // 1. Actual value for this period
   const actual = parseFloat(localStorage.getItem('fa_'+cat+'_'+key+'_'+ym)||'0')||0;
   if(actual) return actual;
+  // 2. Planned value for this period
   const planned = parseFloat(localStorage.getItem('fp_'+cat+'_'+key+'_'+ym)||'0')||0;
   if(planned) return planned;
+  // 3. Actual default
   const defActual = getDefault('actual', cat, key);
   if(defActual) return defActual;
+  // 4. Planned default
   const defPlanned = getDefault('planned', cat, key);
   if(defPlanned) return defPlanned;
   return 0;
@@ -1174,6 +1135,8 @@ function renderSettings() {
       </div>`;
     }).join('');
   }
+
+  // Render portfolio toggles at top of settings
   const portSection = document.getElementById('settings-portfolios');
   if(portSection) {
     portSection.innerHTML = Object.entries(INV_PORTFOLIOS_DEF).map(([key,p])=>{
@@ -1191,6 +1154,7 @@ function renderSettings() {
     }).join('') + `
     <button class="crud-add-btn" onclick="promptAddPortfolio()">+ Dodaj investicijski portfelj</button>`;
   }
+
   const body = document.getElementById('settings-body');
 
   const BUCKETS = [
@@ -1214,22 +1178,18 @@ function renderSettings() {
       }).join('');
       const defInputs = SECTIONS.map(sec => {
         const defVal = getDefault(sec.key, cat, sub.key);
-        return `<div class="set-def-group">
-          <span class="set-def-label">${sec.label}</span>
-          <input type="number" class="set-def-inp" placeholder="—"
-            value="${defVal > 0 ? defVal : ''}"
-            onchange="setDefault('${sec.key}','${cat}','${sub.key}',this.value)"
-            min="0" step="0.01">
-        </div>`;
+        return `<input type="number" class="set-def-inp" placeholder="—"
+          value="${defVal > 0 ? defVal : ''}"
+          title="Zadana vrijednost za ${sec.label}"
+          onchange="setDefault('${sec.key}','${cat}','${sub.key}',this.value)"
+          min="0" step="0.01">`;
       }).join('');
-      return `<div class="set-row-block">
-        <div class="set-row-top">
-          <div class="set-dot" style="background:${sub.color}"></div>
-          <span class="set-row-label">${sub.label}</span>
-          <button class="crud-btn" onclick="promptRenameSubcat('${cat}','${sub.key}')" title="Preimenuj">✏️</button>
-          <button class="crud-btn crud-del" onclick="removeSubcat('${cat}','${sub.key}');renderSettings();renderSidebarNav();" title="Obriši">🗑</button>
-        </div>
-        <div class="set-defaults" id="radios_${cat}__${sub.key}_def">${defInputs}</div>
+      return `<div class="set-row">
+        <div class="set-dot" style="background:${sub.color}"></div>
+        <span class="set-row-label">${sub.label}</span>
+        <button class="crud-btn" onclick="promptRenameSubcat('${cat}','${sub.key}')" title="Preimenuj">✏️</button>
+        <button class="crud-btn crud-del" onclick="removeSubcat('${cat}','${sub.key}');renderSettings();renderSidebarNav();" title="Obriši">🗑</button>
+        <div class="set-defaults">${defInputs}</div>
         <div class="set-radios" id="radios_${cat}__${sub.key}">${btns}</div>
       </div>`;
     }).join('');
@@ -1240,6 +1200,17 @@ function renderSettings() {
         <span class="set-cat-label">${m.label}</span>
         <button class="crud-btn" onclick="promptRenameCategory('${cat}')" title="Preimenuj kategoriju">✏️</button>
         <button class="crud-btn crud-del" onclick="removeCategory('${cat}');renderSettings();renderSidebarNav();" title="Obriši kategoriju">🗑</button>
+      </div>
+      <div class="set-col-hdr">
+        <span style="font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px">Stavka</span>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div style="display:flex;gap:4px;margin-right:8px">
+            <span class="set-col-lbl" style="width:100px">Zadano (stvarno)</span>
+          </div>
+          <div class="set-col-labels">
+            ${BUCKETS.map(b=>`<span class="set-col-lbl">${b.label}</span>`).join('')}
+          </div>
+        </div>
       </div>
       ${rows}
       <button class="crud-add-btn" onclick="promptAddSubcat('${cat}')">+ Dodaj podkategoriju</button>
@@ -1352,11 +1323,10 @@ function togglePortfolio(key, enabled) {
   cfg[key] = enabled;
   savePortConfig(cfg);
   renderSettings();
-  document.querySelectorAll('.nc').forEach(function(el) {
-    if(el.getAttribute('onclick') && el.getAttribute('onclick').indexOf("goInv('" + key + "')") !== -1)
-      el.style.display = enabled ? '' : 'none';
-  });
   scheduleAutoPush();
+  // update sidebar visibility
+  const navEl = document.querySelector(`.nc[onclick*="goInv('${key}')"]`);
+  if(navEl) navEl.style.display = enabled ? '' : 'none';
 }
 
 function setBucket(cat, key, bucket, btn) {
@@ -1424,6 +1394,27 @@ function buildPeriodPicker(barId, onChangeFn) {
 }
 
 // ══════════════════════════════════════════════
+// DEFAULT VALUES — used when no monthly value entered
+// ══════════════════════════════════════════════
+function defaultKey(pfx, cat, subkey) {
+  return `${pfx}_${cat}_${subkey}_default`;
+}
+function getDefault(section, cat, subkey) {
+  const pfx = section==='planned'?'fp':'fa';
+  return parseFloat(localStorage.getItem(defaultKey(pfx, cat, subkey)) || '0') || 0;
+}
+function setDefault(section, cat, subkey, val) {
+  const pfx = section==='planned'?'fp':'fa';
+  localStorage.setItem(defaultKey(pfx, cat, subkey), parseFloat(val) || 0);
+  scheduleAutoPush();
+}
+function hasMonthlyValue(section, cat, subkey) {
+  const pfx = section==='planned'?'fp':'fa';
+  const stored = localStorage.getItem(`${pfx}_${cat}_${subkey}_${periodKey()}`);
+  return stored !== null && stored !== '' && stored !== '0';
+}
+
+// ══════════════════════════════════════════════
 // DATA — stored per period key YYYY-MM
 // ══════════════════════════════════════════════
 function storeKey(pfx, cat, subkey) {
@@ -1449,22 +1440,10 @@ function getDB(section, cat, subkey) {
   if (stored !== null && stored !== '' && parseFloat(stored) !== 0) {
     return parseFloat(stored) || 0;
   }
+  // Planned values come ONLY from explicit entries (set via Godišnji plan)
+  // Actual values fall back to defaults
   if(section === 'planned') return 0;
   return getDefault(section, cat, subkey);
-}
-function getDefault(section, cat, subkey) {
-  const pfx = section==='planned'?'fp':'fa';
-  return parseFloat(localStorage.getItem(`${pfx}_${cat}_${subkey}_default`) || '0') || 0;
-}
-function setDefault(section, cat, subkey, val) {
-  const pfx = section==='planned'?'fp':'fa';
-  localStorage.setItem(`${pfx}_${cat}_${subkey}_default`, parseFloat(val) || 0);
-  scheduleAutoPush();
-}
-function hasMonthlyValue(section, cat, subkey) {
-  const pfx = section==='planned'?'fp':'fa';
-  const stored = localStorage.getItem(`${pfx}_${cat}_${subkey}_${periodKey()}`);
-  return stored !== null && stored !== '' && stored !== '0';
 }
 function setDB(section, cat, subkey, val) {
   setVal(section==='planned'?'fp':'fa', cat, subkey, val);
@@ -1511,8 +1490,8 @@ function goPage(id, el){
   if(id==='nekretnine') { renderNekretnine(); return; }
   if(id==='godisnji')    { renderGodisnji(); return; }
   if(id==='kalkulator')  { renderKalkulator(); return; }
-  if(id==='investments') { renderInvPortfolio(); pullAndRender(); return; }
-  if(id==='settings')    renderSettings();
+  if(id==='investments') { renderInvPortfolio(); return; }
+  if(id==='settings')    { renderSettings(); return; }
   closeDrawer();
 }
 
@@ -1520,11 +1499,7 @@ function gocat(section, cat, el){
   clearActive(); el.classList.add('active');
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-cat').classList.add('active');
-  pullFromCloud().then(ok => {
-    if(ok) { DB.investments=JSON.parse(localStorage.getItem('finv')||'[]'); bucketCfg=loadBucketConfig(); }
-    renderCatPage(section, cat);
-  });
-  closeDrawer();
+  renderCatPage(section, cat);
 }
 
 function toggleSection(id){
@@ -1545,11 +1520,11 @@ function goInv(key, el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-investments').classList.add('active');
   currentPortfolio = key;
+  // sync tab buttons if visible
   document.querySelectorAll('.inv-tab').forEach(t=>t.classList.remove('active'));
   const tabEl = document.getElementById('itab-'+key);
   if(tabEl) tabEl.classList.add('active');
   renderInvPortfolio();
-  closeDrawer();
 }
 
 
@@ -1611,7 +1586,7 @@ let _sec, _cat;
 
 function renderCatPage(section, cat) {
   _sec = section; _cat = cat;
-  buildHeaderPeriodPicker();
+
   const m    = META[cat];
   const subs = SUBCATS[cat];
   const isInc = m.income;
@@ -1713,14 +1688,18 @@ function loadPortConfig() {
     const s = localStorage.getItem(INV_PORT_KEY);
     if(s) return JSON.parse(s);
   } catch(e) {}
+  // default: all enabled
   return Object.fromEntries(Object.keys(INV_PORTFOLIOS_DEF).map(k=>[k,true]));
 }
 function savePortConfig(cfg) { localStorage.setItem(INV_PORT_KEY, JSON.stringify(cfg)); }
 function isPortEnabled(key) { return loadPortConfig()[key] !== false; }
+
+// Dynamic INV_PORTFOLIOS — only enabled ones
 function getActivePortfolios() {
   const cfg = loadPortConfig();
   return Object.fromEntries(Object.entries(INV_PORTFOLIOS_DEF).filter(([k])=>cfg[k]!==false));
 }
+
 const INV_PORTFOLIOS_SEED = {
   xau_banka:   {label:'XAU - Banka',   unit:'g',  unitLabel:'gram', color:'#FACC15', priceLabel:'Cijena zlata (€/g)'},
   xau_revolut: {label:'XAU - Revolut', unit:'g',  unitLabel:'gram', color:'#FB923C', priceLabel:'Cijena zlata (€/g)'},
@@ -1742,7 +1721,7 @@ function savePortfolioStructure(struct) {
 }
 
 let INV_PORTFOLIOS_DEF = loadPortfolioStructure();
-const INV_PORTFOLIOS = INV_PORTFOLIOS_DEF;
+const INV_PORTFOLIOS = INV_PORTFOLIOS_DEF; // kept for compatibility — use getActivePortfolios() for dashboard
 
 function refreshPortfolioStructure() {
   INV_PORTFOLIOS_DEF = loadPortfolioStructure();
@@ -2031,7 +2010,7 @@ const charts={};
 Chart.defaults.color='rgba(255,255,255,.8)';
 Chart.defaults.plugins.legend.labels.color='rgba(255,255,255,.8)';
 function renderDash(){
-  buildHeaderPeriodPicker();
+
   const MONTHS_HR = ['Siječanj','Veljača','Ožujak','Travanj','Svibanj','Lipanj',
                      'Srpanj','Kolovoz','Rujan','Listopad','Studeni','Prosinac'];
   document.getElementById('dash-month').innerHTML = testMode
@@ -2116,6 +2095,7 @@ function renderDash(){
       const totalUkupno = kArr.reduce((s,k)=>s+getKreditUkupno(k),0);
       const pct = totalUkupno>0 ? Math.min(100,(totalOtplaceno/totalUkupno*100)).toFixed(1) : 0;
 
+      // Nabava cards for krediti with showNabava=true
       const nabavaPot = getKreditNabavaPotrosen();
       const nabavaCards = kArr.filter(k=>k.showNabava).map(k=>{
         const glavnica = k.pocetni;
@@ -2128,26 +2108,60 @@ function renderDash(){
           + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Potrošeno: '+fmtFull(potroseno)+' od '+fmtFull(glavnica)+'</div>'
           + '<div style="height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden">'
           + '<div style="height:100%;width:'+npct+'%;background:var(--red);border-radius:2px"></div></div>'
+          + '<div style="font-size:10px;color:var(--muted);margin-top:3px;text-align:right">'+npct+'% potrošeno</div>'
           + '</div>';
       }).join('');
 
-      return nabavaCards + '<div class="card" style="margin-bottom:16px;border-left:3px solid var(--amber)">'
-        + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">🏗️ Preostali krediti</div>'
-        + kArr.map(k=>{
-            const p = getKreditPreostaloById(k);
-              const o = getKreditOtplacenoDisplay(k);
-            const pp = getKreditPctOtplaceno(k).toFixed(1);
-            return '<div style="margin-bottom:16px">'
-              + '<div style="font-size:13px;font-weight:500;margin-bottom:4px">'+k.naziv+'</div>'
-              + '<div style="font-size:22px;font-weight:700;color:'+(p>=0?'var(--amber)':'var(--red)')+'">'+fmtFull(Math.max(0,p))+'</div>'
-              + '<div style="font-size:11px;color:var(--muted);margin-top:2px">Otplaćeno: '+fmtFull(o)+'</div>'
-              + '<div style="height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden">'
-              + '<div style="height:100%;width:'+pp+'%;background:var(--green);border-radius:2px"></div></div>'
+      // SVG donut
+      function kreditDonut(preostalo, ukupno, colMain, colSecond) {
+        const R = 52, cx = 70, cy = 70;
+        const circ = 2 * Math.PI * R;
+        const pctPre = ukupno > 0 ? Math.min(1, preostalo / ukupno) : 1;
+        const dashPre  = (pctPre * circ).toFixed(2);
+        const dashOtpl = ((1-pctPre) * circ).toFixed(2);
+        return '<svg width="140" height="140" viewBox="0 0 140 140">'
+          + '<circle cx="70" cy="70" r="52" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="16"/>'
+          + '<circle cx="70" cy="70" r="52" fill="none" stroke="'+colSecond+'" stroke-width="16"'
+          + ' stroke-dasharray="'+dashOtpl+' '+dashPre+'" stroke-dashoffset="'+(-(pctPre*circ)).toFixed(2)+'"'
+          + ' transform="rotate(-90 70 70)" stroke-linecap="butt"/>'
+          + '<circle cx="70" cy="70" r="52" fill="none" stroke="'+colMain+'" stroke-width="16"'
+          + ' stroke-dasharray="'+dashPre+' '+dashOtpl+'"'
+          + ' transform="rotate(-90 70 70)" stroke-linecap="butt"/>'
+          + '</svg>';
+      }
+
+      // All items: nabava krediti (plavo) + otplata krediti (amber) in one row
+      const nabavaItems = kArr.filter(k=>k.showNabava).map(k=>{
+        const pot = nabavaPot;
+        const pre = Math.max(0, k.pocetni - pot);
+        return { naziv: k.naziv, preostalo: pre, ukupno: k.pocetni, otplaceno: pot,
+                 colMain:'#7DC8FF', colSecond:'rgba(125,200,255,.25)', label:'za nabavu' };
+      });
+      const otplataItems = kArr.map(k=>{
+        const p = Math.max(0, getKreditPreostaloById(k));
+        const o = getKreditOtplacenoDisplay(k);
+        return { naziv: k.naziv, preostalo: p, ukupno: getKreditUkupno(k), otplaceno: o,
+                 colMain:'#F0B040', colSecond:'rgba(240,176,64,.25)', label:'za otplatu' };
+      });
+      const allItems = [...nabavaItems, ...otplataItems];
+      if(!allItems.length) return '';
+
+      return '<div class="card" style="margin-bottom:16px">'
+        + '<div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:16px">🏗️ Krediti</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px;max-width:100%">'
+        + allItems.map(item=>{
+            return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px">'
+              + '<div style="position:relative;width:130px;height:130px">'
+              + kreditDonut(item.preostalo, item.ukupno, item.colMain, item.colSecond)
+              + '<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:8px">'
+              + '<div style="font-size:13px;font-weight:700;color:'+item.colMain+';line-height:1.2">'+fmtFull(item.preostalo)+'</div>'
+              + '<div style="font-size:9px;color:var(--muted);margin-top:1px">'+item.label+'</div>'
+              + '</div></div>'
+              + '<div style="font-size:11px;font-weight:600;text-align:center;color:var(--text)">'+item.naziv+'</div>'
+              + '<div style="font-size:10px;color:var(--muted)">Iskor.: '+fmtFull(item.otplaceno)+'</div>'
               + '</div>';
           }).join('')
-        + '<div style="border-top:1px solid var(--border);padding-top:10px">'
-        + '<div style="font-size:11px;color:var(--muted);margin-bottom:2px">Ukupno preostalo</div>'
-        + '<div style="font-size:18px;font-weight:700;color:var(--amber)">'+fmtFull(totalPreostalo)+'</div></div></div>';
+        + '</div></div>';
     })()}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:22px">
       <div class="mc"><div class="mc-l">Planirani prihod</div><div class="mc-v pos">${fmtFull(planPrihod)}</div></div>
@@ -2317,6 +2331,7 @@ function renderDash(){
           }
         }
       });
+      // Custom HTML legend — guaranteed white text
       const legendEl = document.getElementById('chartPlanLegend');
       if(legendEl) {
         legendEl.innerHTML = planYearTotals.map(function(x) {
@@ -2336,30 +2351,7 @@ function renderDash(){
   const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
   const pocetnoStanje = getZrStanje(zajYear) || loadPocetnoStanje();
 
-  function calcStanjeForMonth(section, year, month) {
-    const mk = String(month).padStart(2,'0');
-    const pfx = section==='planned' ? 'fp' : 'fa';
-    
-    // Uplata — always from actual
-    const uKey = 'fa_zajednicki_zajednicki_uplata_' + year + '-' + mk;
-    const uplataRaw = parseFloat(localStorage.getItem(uKey)||'0')||0;
-    const uplataDefault = getDefault('actual','zajednicki','zajednicki_uplata');
-    const uplata = uplataRaw || uplataDefault;
 
-    // Troškovi — all zajednicki bucket items except uplata
-    let troskovi = 0;
-    ALL_CATS.forEach(cat => {
-      SUBCATS[cat].forEach(sub => {
-        if(getBucket(cat,sub.key)==='zajednicki' && !(cat==='zajednicki'&&sub.key==='zajednicki_uplata')) {
-          const k = pfx + '_' + cat + '_' + sub.key + '_' + year + '-' + mk;
-          const raw = parseFloat(localStorage.getItem(k)||'0')||0;
-          const def = getDefault(section, cat, sub.key);
-          troskovi += raw || def;
-        }
-      });
-    });
-    return {uplata, troskovi};
-  }
 
   // Build cumulative planned and actual stanje for all 12 months
   const planLine = [], actLine = [];
@@ -2458,44 +2450,6 @@ function renderDashTable() {
       return catRow + subRows;
     }).join('')}</tbody>`;
 }
-
-// ── DRAWER ──
-function closeDrawer(){const d=document.getElementById("drawer"),o=document.getElementById("drawer-overlay");if(d)d.classList.remove("open");if(o)o.classList.remove("open");document.body.style.overflow="";}
-function openDrawer(){
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('drawer-overlay').classList.add('open');
-  document.body.style.overflow='hidden';
-}
-
-
-
-
-// Period picker in header (compact)
-function buildHeaderPeriodPicker(){
-  const bar = document.getElementById('period-bar-header');
-  if(!bar) return;
-  const now = new Date();
-  const startYear = 2024, endYear = now.getFullYear()+1;
-  const years = Array.from({length:endYear-startYear+1},(_,i)=>startYear+i);
-  const MONTHS_SHORT = ['Sij','Velj','Ožu','Tra','Svi','Lip','Srp','Kol','Ruj','Lis','Stu','Pro'];
-  bar.innerHTML = `
-    <select onchange="handleMonthChange(this.value,'refreshCurrentPage()')">
-      ${MONTHS_SHORT.map((m,i)=>`<option value="${i+1}"${i+1===selMonth&&!testMode?' selected':''}>${m}</option>`).join('')}
-      <option value="TEST" ${testMode?' selected':''}>TEST</option>
-    </select>
-    <select onchange="selYear=+this.value;refreshCurrentPage()">
-      ${years.map(y=>`<option value="${y}"${y===selYear?' selected':''}>${y}</option>`).join('')}
-    </select>`;
-}
-
-function refreshCurrentPage(){
-  const activePage = document.querySelector('.page.active');
-  if(!activePage) return;
-  const id = activePage.id.replace('page-','');
-  if(id==='dashboard') renderDash();
-  else if(id==='cat' && typeof _sec!=='undefined') renderCatPage(_sec,_cat);
-}
-
 
 
 
@@ -4050,6 +4004,7 @@ function waitForLayout() {
 
 
 // ── INIT ──
+// Hide disabled portfolios in sidebar
 // ── INIT ──
 checkPinOnLoad();
 buildGlobalPeriodPicker();
