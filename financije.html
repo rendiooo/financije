@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v8.3.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v8.4.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v8.3.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v8.4.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -562,6 +562,11 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Svaki kredit možete vezati na podkategoriju u troškovima — uplate se automatski oduzimaju od preostalog iznosa.</p>
 
       <div id="settings-krediti"></div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:14px">Kalkulator — troškovi po osobi</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Postavite iznose i opise redaka koji se koriste u kalkulatoru zajedničkih troškova.</p>
+      <div id="settings-kalk"></div>
     </div>
     <div id="settings-body"></div>
   </div>
@@ -2179,6 +2184,8 @@ function renderDash(){
       <div class="mc"><div class="mc-l">Stvarni ZR troškovi</div><div class="mc-v neg">${fmtFull(zajTroskoviAct)}</div></div>
       <div class="mc"><div class="mc-l">Planirano stanje ZR</div><div class="mc-v ${planStanje>=0?'pos':'neg'}">${planStanje>=0?'':'−'}${fmtFull(Math.abs(planStanje))}</div></div>
       <div class="mc"><div class="mc-l">Stvarno stanje ZR</div><div class="mc-v ${actStanje>=0?'pos':'neg'}">${actStanje>=0?'':'−'}${fmtFull(Math.abs(actStanje))}</div></div>
+      <div class="mc"><div class="mc-l">Planirana bilanca</div><div class="mc-v ${planBal>=0?'pos':'neg'}">${planBal>=0?'+':'−'}${fmtFull(Math.abs(planBal))}</div></div>
+      <div class="mc"><div class="mc-l">Stvarna bilanca</div><div class="mc-v ${actBal>=0?'pos':'neg'}">${actBal>=0?'+':'−'}${fmtFull(Math.abs(actBal))}</div></div>
     </div>
     <div style="margin-bottom:6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Investicije</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:22px">
