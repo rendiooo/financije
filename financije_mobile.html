@@ -975,7 +975,7 @@ function renderKalkSettings() {
   if(!el) return;
   const cfg = loadKalkConfig();
   const opts = [{key:'_none',label:'— nije dodijeljeno —'},{key:'_deparac',label:'Đeparac (400€)'}];
-  ALL_CATS.forEach(cat => SUBCATS[cat].forEach(sub => opts.push({key:cat+'__'+sub.key, label:sub.label})));
+  ALL_CATS.forEach(cat => (SUBCATS[cat]||[]).forEach(sub => opts.push({key:cat+'__'+sub.key, label:sub.label})));
   const optHtml = opts.map(o=>`<option value="${o.key}">${o.label}</option>`).join('');
 
   const persons = [{id:'matea',name:'Matea'},{id:'matija',name:'Matija'}];
@@ -1127,9 +1127,9 @@ function renderSettings() {
   if (pocEl) pocEl.value = loadPocetnoStanje() || '';
   const portCfg = loadPortConfig();
 
-  renderKalkSettings();
-  renderMojDomSetting();
-  renderKreditSettings();
+  try { renderMojDomSetting(); } catch(e) { console.warn('mojdom:', e); }
+  try { renderKalkSettings(); } catch(e) { console.warn('kalk:', e); }
+  try { renderKreditSettings(); } catch(e) { console.warn('kredit:', e); }
   const kni=document.getElementById('kredit-nabava-inp'); if(kni) kni.value=getKreditNabavaPocetni()||'';
 
   // Render year lock section
