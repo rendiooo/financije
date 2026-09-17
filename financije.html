@@ -335,7 +335,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
 <div class="pin-screen" id="pin-screen">
   <div class="pin-logo">Financije</div>
   <div class="pin-sub">OSOBNI TRACKER</div>
-  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v8.5.0</div>
+  <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:4px;letter-spacing:1px">v8.8.0</div>
   <div class="pin-dots" id="pin-dots">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
@@ -455,7 +455,7 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
       </div>
     </div>
   </nav>
-  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v8.5.0</span></span></div>
+  <div class="sb-foot" style="display:flex;justify-content:space-between;align-items:center"><span style="display:flex;align-items:center;gap:5px"><span id="sb-live-dot" style="width:5px;height:5px;border-radius:50%;background:#39FF8F;display:inline-block"></span>Podaci · v8.8.0</span></span></div>
 </aside>
 
 <!-- ════════════════ MAIN ════════════════ -->
@@ -538,6 +538,14 @@ input:checked+.toggle-slider:before{transform:translateX(16px)}
   <!-- SETTINGS -->
   <div id="page-settings" class="page">
     <div class="ph"><h2>Postavke</h2><p>Konfiguracija bucketa i početnog stanja</p></div>
+    <div class="card" style="margin-bottom:18px;border-left:3px solid #39FF8F">
+      <div class="ct" style="margin-bottom:10px">💾 Backup podataka</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Redovito izvozite backup kako biste zaštitili podatke. Backup možete uvesti ako dođe do gubitka podataka.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="crud-add-btn" onclick="exportBackup()">⬇️ Izvezi backup (JSON)</button>
+        <button class="crud-btn" onclick="importBackup()" style="padding:8px 16px">⬆️ Uvezi backup</button>
+      </div>
+    </div>
 
 
     <div class="card" style="margin-bottom:18px">
@@ -3820,6 +3828,57 @@ document.addEventListener('keydown', function(e) {
   else if(e.key==='Backspace') pinDel();
 });
 
+
+// ══════════════════════════════════════════════
+// BACKUP — export/import JSON
+// ══════════════════════════════════════════════
+function exportBackup() {
+  const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','krediti_v1','kredit_nabava_pocetni','kredit_nabava_show'];
+  const data = {};
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(pfx.some(p=>k.startsWith(p))) data[k]=localStorage.getItem(k);
+  }
+  data._backup_date = new Date().toISOString();
+  data._backup_keys = Object.keys(data).length;
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'mm-financije-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  alert('Backup spremljen! Ključeva: ' + (Object.keys(data).length-2));
+}
+
+function importBackup() {
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = '.json';
+  inp.onchange = function(e) {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const data = JSON.parse(ev.target.result);
+        const keys = Object.keys(data).filter(k=>!k.startsWith('_backup'));
+        if(keys.length < 5) { alert('Backup nema dovoljno podataka.'); return; }
+        if(!confirm('Uvesti ' + keys.length + ' ključeva iz backupa? Ovo će zamijeniti trenutne podatke.')) return;
+        const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','krediti_v1','kredit_nabava_pocetni','kredit_nabava_show'];
+        Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p))).forEach(k=>localStorage.removeItem(k));
+        keys.forEach(k=>localStorage.setItem(k,data[k]));
+        scheduleAutoPush();
+        alert('Backup uvezen! Osvježite stranicu.');
+        location.reload();
+      } catch(err) {
+        alert('Greška pri uvozu: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
 // ══════════════════════════════════════════════
 // FIREBASE FIRESTORE — real-time sync
 // ══════════════════════════════════════════════
@@ -3857,19 +3916,30 @@ function collectLocalData() {
 }
 
 function applyCloudData(data) {
+  const entries = Object.entries(data).filter(([k])=>k!=='_updated');
+  if(entries.length < 5) {
+    console.warn('[SYNC] applyCloudData aborted — only', entries.length, 'keys in cloud data');
+    return false;
+  }
   const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','krediti_v1','kredit_nabava_pocetni','kredit_nabava_show'];
   Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p)))
     .forEach(k=>localStorage.removeItem(k));
-  Object.entries(data).forEach(([k,v])=>{ if(k!=='_updated') localStorage.setItem(k,v); });
+  entries.forEach(([k,v])=>localStorage.setItem(k,v));
+  return true;
 }
 
 // ── PUSH — write to Firestore ──
 async function pushToCloud() {
   if(isSyncing) return;
+  const data = collectLocalData();
+  const keyCount = Object.keys(data).length;
+  if(keyCount < 5) {
+    console.warn('[SYNC] Push aborted — only', keyCount, 'local keys, likely empty state');
+    return;
+  }
   isSyncing = true;
   setSyncStatus('syncing', 'Spremanje...');
   try {
-    const data = collectLocalData();
     data._updated = Date.now();
     suppressNextSnapshot = true;
     await DOC_REF.set(data);
@@ -3927,11 +3997,44 @@ async function syncNow() {
   await pushToCloud();
 }
 async function osvjezi() {
-  const ok = await pullFromCloud();
-  if(ok) {
+  setSyncStatus('syncing','Učitavanje...');
+  try {
+    const snap = await DOC_REF.get();
+    if(!snap.exists) { setSyncStatus('ok','Nema podataka u oblaku'); return; }
+    const data = snap.data();
+    const cloudKeys = Object.keys(data).filter(k=>k!=='_updated');
+    // SAFETY: only apply if cloud has meaningful data
+    if(cloudKeys.length < 5) {
+      console.warn('[SYNC] Cloud has only', cloudKeys.length, 'keys — aborting apply');
+      setSyncStatus('err','Oblak ima premalo podataka');
+      return;
+    }
+    // Apply cloud data — only NOW clear local
+    const pfx = ['fp_','fa_','finv','inv2_','invprice_','bucket_','rashod_','pocetno_','inv_port_','kalk_config','locked_years','app_pin','app_structure_v1','app_portfolios_v1','price_link_groups','zr_stanje_','nekret_data_v1','nekret_moj_dom','krediti_v1','kredit_nabava_pocetni','kredit_nabava_show'];
+    Object.keys(localStorage).filter(k=>pfx.some(p=>k.startsWith(p))).forEach(k=>localStorage.removeItem(k));
+    cloudKeys.forEach(k=>localStorage.setItem(k, data[k]));
+    refreshStructure();
+    refreshPortfolioStructure();
     DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
     bucketCfg = loadBucketConfig();
-    reloadAndRender();
+    renderSidebarNav();
+    renderPortfolioNav();
+    const ap = document.querySelector('.page.active');
+    const id = ap ? ap.id.replace('page-','') : 'dashboard';
+    if(id==='dashboard') renderDash();
+    else if(id==='cat'&&typeof _sec!=='undefined') renderCatPage(_sec,_cat);
+    else if(id==='investments') renderInvPortfolio();
+    else if(id==='kalkulator') renderKalkulator();
+    else if(id==='settings') renderSettings();
+    else if(id==='actual') renderActualOverview();
+    else if(id==='nekretnine') renderNekretnine();
+    else renderDash();
+    setSyncStatus('ok','Osvježeno');
+    console.log('[SYNC] Applied', cloudKeys.length, 'keys from cloud');
+  } catch(e) {
+    // CRITICAL: on error, do NOT touch localStorage
+    setSyncStatus('err','Greška: '+e.message);
+    console.error('[SYNC] pull error — localStorage untouched', e);
   }
 }
 
@@ -3999,14 +4102,7 @@ async function initWithSync() {
   testMode = false;
   if(typeof buildHeaderPeriodPicker==='function') buildHeaderPeriodPicker();
   await waitForLayout();
-  await pullFromCloud();
-  refreshStructure();
-  refreshPortfolioStructure();
-  renderSidebarNav();
-  renderPortfolioNav();
-  DB.investments = JSON.parse(localStorage.getItem('finv')||'[]');
-  bucketCfg = loadBucketConfig();
-  try { renderDash(); } catch(e) { console.warn('renderDash:', e); }
+  await osvjezi();
   startRealtimeSync();
 }
 
